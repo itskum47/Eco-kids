@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+
+  api:
+    build: ./server
+    container_name: ecokids-api
+    command: node server.js
+    ports:
+      - "5001:5001"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/ecokids
+      - REDIS_URI=redis://redis:6379
+
+  worker:
+    build: ./server
+    container_name: ecokids-worker
+    command: node workers/gamificationWorker.js
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    env_file:
+      - ./server/.env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/ecokids
+      - REDIS_URI=redis://redis:6379
+
+  redis:
+    image: redis:7-alpine
+    container_name: ecokids-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    command: >
+      redis-server --appendonly yes --appendfsync everysec --save 900 1 --save 300 10 --save 60 10000
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:7
+    container_name: ecokids-mongo
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+  mongo_data:

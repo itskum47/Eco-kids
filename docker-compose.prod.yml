@@ -1,0 +1,112 @@
+version: "3.9"
+
+services:
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: ecokids-api
+    restart: unless-stopped
+    env_file:
+      - ./server/.env.production
+    environment:
+      - NODE_ENV=production
+    networks:
+      - ecokids-net
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          cpus: "1.0"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:5001/health" ]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  worker:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.worker
+    container_name: ecokids-worker
+    restart: unless-stopped
+    env_file:
+      - ./server/.env.production
+    environment:
+      - NODE_ENV=production
+    networks:
+      - ecokids-net
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          cpus: "0.5"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: ecokids-redis
+    restart: unless-stopped
+    command: >
+      redis-server --appendonly yes --appendfsync everysec --maxmemory 128mb --maxmemory-policy allkeys-lru --save 900 1 --save 300 10 --save 60 10000
+    volumes:
+      - redis_data:/data
+    networks:
+      - ecokids-net
+    deploy:
+      resources:
+        limits:
+          memory: 192m
+          cpus: "0.25"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: ecokids-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - ecokids-net
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+          cpus: "0.25"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  ecokids-net:
+    driver: bridge
+
+volumes:
+  redis_data:

@@ -1,0 +1,7 @@
+module.exports = {
+    HABIT_LOGGED: 5,
+    ACTIVITY_APPROVED: 50,
+    QUIZ_COMPLETED: 10,
+    EXPERIMENT_COMPLETED: 25,
+    STREAK_BONUS: 20
+};

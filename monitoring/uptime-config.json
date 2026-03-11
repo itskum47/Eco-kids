@@ -1,0 +1,16 @@
+{
+  "checkType": "http",
+  "checkMethod": "GET",
+  "checkUrl": "https://api.ecokids.in/api/health",
+  "checkInterval": 60,
+  "checkTimeout": 30,
+  "alertContacts": [
+    "email:devteam@ecokids.in",
+    "sms:+919876543210"
+  ],
+  "alertThreshold": 3,
+  "description": "EcoKids API Health Check",
+  "regions": ["asia-mumbai", "asia-singapore"],
+  "expectedStatus": 200,
+  "expectedBodyContains": "healthy"
+}

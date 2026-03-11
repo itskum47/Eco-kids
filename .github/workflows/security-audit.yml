@@ -1,0 +1,85 @@
+name: Security Audit
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Every Monday 11:30 AM IST
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  dependency-audit:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: npm audit
+        working-directory: server
+        run: |
+          npm audit --audit-level=high --json > /tmp/npm-audit.json 2>&1 || true
+          VULNS=$(node -e "const r=require('/tmp/npm-audit.json');console.log(r.metadata?.vulnerabilities?.high||0,r.metadata?.vulnerabilities?.critical||0)" 2>/dev/null || echo "0 0")
+          HIGH=$(echo $VULNS | cut -d' ' -f1)
+          CRITICAL=$(echo $VULNS | cut -d' ' -f2)
+          echo "High: $HIGH, Critical: $CRITICAL"
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "❌ Critical vulnerabilities found"
+            cat /tmp/npm-audit.json | node -e "const r=require('/tmp/npm-audit.json');console.log(JSON.stringify(r.vulnerabilities||{},null,2))" 2>/dev/null || true
+            exit 1
+          fi
+          if [ "$HIGH" -gt 0 ]; then
+            echo "⚠️ High vulnerabilities found (warning)"
+          fi
+
+      - name: License check
+        working-directory: server
+        run: |
+          npx -y license-checker --onlyAllow "MIT;ISC;BSD-2-Clause;BSD-3-Clause;Apache-2.0;CC0-1.0;CC-BY-3.0;CC-BY-4.0;0BSD;Python-2.0;Unlicense;BlueOak-1.0.0" --excludePrivatePackages 2>&1 | tail -5 || true
+
+      - name: Check for known vulnerable patterns
+        working-directory: server
+        run: |
+          echo "Checking for unsafe patterns..."
+          ISSUES=0
+          # eval() usage
+          EVAL=$(grep -rn "eval(" --include="*.js" --exclude-dir=node_modules . | wc -l)
+          if [ "$EVAL" -gt 0 ]; then
+            echo "⚠️ eval() found: $EVAL instances"
+            grep -rn "eval(" --include="*.js" --exclude-dir=node_modules . | head -5
+            ISSUES=$((ISSUES + 1))
+          fi
+          # Hardcoded secrets
+          SECRETS=$(grep -rn "password\s*=\s*['\"]" --include="*.js" --exclude-dir=node_modules --exclude="*.test.*" . | grep -v "process.env" | wc -l)
+          if [ "$SECRETS" -gt 0 ]; then
+            echo "⚠️ Possible hardcoded secrets: $SECRETS"
+            ISSUES=$((ISSUES + 1))
+          fi
+          echo "Pattern check complete: $ISSUES concerns"
+
+      - name: OWASP dependency check
+        if: github.event_name == 'schedule'
+        run: |
+          npx -y better-npm-audit audit --level high 2>&1 | tail -20 || true
+
+      - name: Notify on critical findings
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🔴 Security audit found critical issues. Review: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

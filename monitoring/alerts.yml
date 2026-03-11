@@ -1,0 +1,67 @@
+groups:
+  - name: ecokids_alerts
+    rules:
+      # ── Latency ──
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, sum(rate(ecokids_http_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 latency exceeds 2 seconds"
+          description: "95th percentile latency is {{ $value }}s (threshold: 2s)"
+
+      - alert: CriticalLatency
+        expr: histogram_quantile(0.99, sum(rate(ecokids_http_request_duration_seconds_bucket[5m])) by (le)) > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "p99 latency exceeds 5 seconds"
+
+      # ── Error Rate ──
+      - alert: HighErrorRate
+        expr: sum(rate(ecokids_http_requests_total{status_code=~"5.."}[5m])) / sum(rate(ecokids_http_requests_total[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error rate exceeds 1%"
+          description: "5xx error rate is {{ $value | humanizePercentage }}"
+
+      # ── Queue ──
+      - alert: QueueBacklog
+        expr: ecokids_queue_depth > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Queue depth exceeds 1000"
+          description: "Queue {{ $labels.queue_name }} has {{ $value }} pending jobs"
+
+      # ── Cache ──
+      - alert: LowCacheHitRate
+        expr: sum(rate(ecokids_cache_hits_total[10m])) / (sum(rate(ecokids_cache_hits_total[10m])) + sum(rate(ecokids_cache_misses_total[10m]))) < 0.6
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache hit rate below 60%"
+
+      # ── Fraud ──
+      - alert: FraudSpike
+        expr: sum(increase(ecokids_fraud_flags_total[1h])) > 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "More than 20 fraud flags in the last hour"
+
+      # ── Availability ──
+      - alert: APIDown
+        expr: up{job="ecokids-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "EcoKids API is down"

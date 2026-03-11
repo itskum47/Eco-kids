@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Allow: /topics
+Allow: /games
+Allow: /experiments
+Allow: /quizzes
+Allow: /leaderboard
+
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /api
+Disallow: /api/*
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /settings
+Disallow: /teacher
+Disallow: /teacher/*
+
+Sitemap: https://ecokidsindia.com/sitemap.xml

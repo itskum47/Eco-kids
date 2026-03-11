@@ -1,0 +1,31 @@
+{
+    "nav": {
+        "dashboard": "Dashboard",
+        "quizzes": "Quizzes",
+        "experiments": "Experiments",
+        "leaderboard": "Leaderboard"
+    },
+    "auth": {
+        "login": "Login",
+        "signup": "Sign Up",
+        "logout": "Logout"
+    },
+    "actions": {
+        "submit": "Submit",
+        "assign": "Assign",
+        "approve": "Approve",
+        "reject": "Reject",
+        "start": "Start",
+        "upload_photo": "Upload Photo"
+    },
+    "role": {
+        "student": "Student",
+        "teacher": "Teacher",
+        "admin": "Admin"
+    },
+    "status": {
+        "pending": "Pending Approval",
+        "approved": "Approved",
+        "rejected": "Rejected"
+    }
+}

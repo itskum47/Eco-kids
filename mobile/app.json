@@ -1,0 +1,68 @@
+{
+  "expo": {
+    "name": "EcoKids India",
+    "slug": "ecokids-india",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTabletMode": true,
+      "bundleIdentifier": "com.ecokids.india",
+      "buildNumber": "1.0.0"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#10B981"
+      },
+      "versionCode": 1,
+      "package": "com.ecokids.india"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#10B981"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos for activity submissions",
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to submit eco-activities"
+        }
+      ]
+    ],
+    "owner": "ecokids-india",
+    "runtimeVersion": {
+      "policy": "nativeVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ecokids-india",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "checkOnLaunch": "always"
+    },
+    "orientation": "portrait",
+    "primaryColor": "#10B981",
+    "backgroundColor": "#ffffff",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#10B981"
+    },
+    "description": "Gamified environmental education platform for Indian schools",
+    "extra": {
+      "eas": {
+        "projectId": "ecokids-india"
+      },
+      "apiUrl": "https://api.ecokids.in/api/v1",
+      "appVersion": "1.0.0"
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+    "name": "EcoKids India",
+    "short_name": "EcoKids",
+    "description": "Gamified environmental education platform for Indian schools",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0e17",
+    "theme_color": "#10b981",
+    "orientation": "portrait-primary",
+    "scope": "/",
+    "lang": "en",
+    "dir": "ltr",
+    "categories": [
+        "education",
+        "kids",
+        "environment"
+    ],
+    "shortcuts": [
+        {
+            "name": "Submit Activity",
+            "short_name": "Submit",
+            "url": "/submit-activity",
+            "description": "Quickly submit eco activities"
+        },
+        {
+            "name": "My Progress",
+            "short_name": "Progress",
+            "url": "/student-dashboard",
+            "description": "View eco progress and points"
+        }
+    ],
+    "icons": [
+        {
+            "src": "/icons/icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/icons/icon-96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/icons/icon-128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/icons/icon-144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable any"
+        },
+        {
+            "src": "/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable any"
+        }
+    ],
+    "screenshots": [],
+    "prefer_related_applications": false
+}

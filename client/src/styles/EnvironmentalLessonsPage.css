@@ -1,0 +1,247 @@
+/* Environmental Lessons Page */
+.environmental-lessons-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.lessons-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.lessons-header h1 {
+  font-size: 2.5rem;
+  color: #2d5016;
+  margin-bottom: 0.5rem;
+}
+
+.lessons-header p {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.lessons-container {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: 2rem;
+}
+
+.lessons-sidebar {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  height: fit-content;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.filter-group {
+  margin-bottom: 2rem;
+}
+
+.filter-group h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2d5016;
+  margin-bottom: 1rem;
+}
+
+.filter-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filter-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.filter-label input {
+  cursor: pointer;
+}
+
+.category-badge,
+.difficulty-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.category-badge {
+  background: #e8f5e9;
+  color: #2d5016;
+}
+
+.difficulty-badge {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.clear-filters-btn {
+  width: 100%;
+  padding: 0.5rem;
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.clear-filters-btn:hover {
+  background: #ff5252;
+}
+
+.lessons-main {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.lessons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.lesson-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.lesson-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.lesson-header {
+  margin-bottom: 1rem;
+}
+
+.lesson-header h3 {
+  color: #2d5016;
+  margin-bottom: 0.5rem;
+}
+
+.lesson-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.lesson-description {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  flex-grow: 1;
+}
+
+.lesson-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.eco-points {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+  color: #2d5016;
+}
+
+.eco-icon {
+  font-size: 1.2rem;
+}
+
+.lesson-stats {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.view-btn {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.3s ease;
+}
+
+.view-btn:hover {
+  background: #45a049;
+}
+
+.loading,
+.error,
+.no-lessons {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.error {
+  color: #d32f2f;
+  background: #ffebee;
+  border-radius: 4px;
+  padding: 1.5rem;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.pagination-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #666;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .lessons-container {
+    grid-template-columns: 1fr;
+  }
+
+  .lessons-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,31 @@
+{
+    "nav": {
+        "dashboard": "ਡੈਸ਼ਬੋਰਡ",
+        "quizzes": "ਕੁਇਜ਼",
+        "experiments": "ਪ੍ਰਯੋਗ",
+        "leaderboard": "ਲੀਡਰਬੋਰਡ"
+    },
+    "auth": {
+        "login": "ਲਾਗਿਨ",
+        "signup": "ਸਾਈਨ ਅੱਪ",
+        "logout": "ਲਾਗਆਊਟ"
+    },
+    "actions": {
+        "submit": "ਜਮ੍ਹਾਂ ਕਰੋ",
+        "assign": "ਸੌਂਪੋ",
+        "approve": "ਮਨਜ਼ੂਰ ਕਰੋ",
+        "reject": "ਰੱਦ ਕਰੋ",
+        "start": "ਸ਼ੁਰੂ ਕਰੋ",
+        "upload_photo": "ਫੋਟੋ ਅਪਲੋਡ ਕਰੋ"
+    },
+    "role": {
+        "student": "ਵਿਦਿਆਰਥੀ",
+        "teacher": "ਅਧਿਆਪਕ",
+        "admin": "ਪ੍ਰਬੰਧਕ"
+    },
+    "status": {
+        "pending": "ਮਨਜ਼ੂਰੀ ਬਾਕੀ",
+        "approved": "ਮਨਜ਼ੂਰ",
+        "rejected": "ਰੱਦ ਕੀਤਾ"
+    }
+}

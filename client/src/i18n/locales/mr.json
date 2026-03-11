@@ -1,0 +1,810 @@
+{
+  "common": {
+    "loading": "लोड होत आहे...",
+    "error": "त्रुटी",
+    "success": "यशस्वी",
+    "save": "जतन करा",
+    "cancel": "रद्द करा",
+    "delete": "हटवा",
+    "edit": "संपादित करा",
+    "view": "पहा",
+    "search": "शोधा",
+    "filter": "फिल्टर",
+    "back": "मागे",
+    "next": "पुढे",
+    "previous": "मागील",
+    "submit": "सबमिट करा",
+    "close": "बंद करा",
+    "open": "उघडा",
+    "yes": "होय",
+    "no": "नाही",
+    "home": "होम",
+    "about": "बद्दल",
+    "contact": "संपर्क",
+    "help": "मदत",
+    "settings": "सेटिंग्ज",
+    "profile": "प्रोफाइल",
+    "logout": "लॉग आउट",
+    "login": "लॉगिन",
+    "register": "नोंदणी करा",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "name": "नाव",
+    "firstName": "पहिले नाव",
+    "lastName": "आडनाव",
+    "phone": "फोन",
+    "address": "पत्ता",
+    "city": "शहर",
+    "state": "राज्य",
+    "country": "देश",
+    "date": "तारीख",
+    "time": "वेळ",
+    "language": "भाषा",
+    "theme": "थीम"
+  },
+  "nav": {
+    "home": "होम",
+    "about": "बद्दल",
+    "topics": "विषय",
+    "games": "खेळ",
+    "experiments": "प्रयोग",
+    "quizzes": "क्विझ",
+    "leaderboard": "लीडरबोर्ड",
+    "ecoStore": "इको स्टोर",
+    "ecoFeed": "इको-फीड",
+    "challenges": "आव्हाने",
+    "profile": "प्रोफाइल",
+    "dashboard": "डॅशबोर्ड",
+    "logout": "लॉग आउट",
+    "login": "लॉगिन करा",
+    "signup": "साइन अप करा",
+    "more": "अधिक",
+    "explore": "एक्सप्लोर करा"
+  },
+  "navigation": {
+    "home": "होम",
+    "topics": "विषय",
+    "games": "खेळ",
+    "experiments": "प्रयोग",
+    "quizzes": "क्विझ",
+    "leaderboard": "लीडरबोर्ड",
+    "profile": "प्रोफाइल",
+    "dashboard": "डॅशबोर्ड",
+    "admin": "प्रशासक"
+  },
+  "auth": {
+    "login": {
+      "title": "परत स्वागत आहे!",
+      "subtitle": "आपला पर्यावरण शिक्षण प्रवास सुरू ठेवण्यासाठी साइन इन करा",
+      "emailLabel": "ईमेल पत्ता",
+      "emailPlaceholder": "आपला ईमेल प्रविष्ट करा",
+      "passwordLabel": "पासवर्ड",
+      "passwordPlaceholder": "आपला पासवर्ड प्रविष्ट करा",
+      "rememberMe": "मला लक्षात ठेवा",
+      "forgotPassword": "पासवर्ड विसरलात?",
+      "signInButton": "साइन इन",
+      "signingIn": "साइन इन होत आहे...",
+      "noAccount": "खाते नाही?",
+      "signUp": "साइन अप",
+      "demoAccounts": "डेमो खाती:",
+      "student": "विद्यार्थी",
+      "teacher": "शिक्षक",
+      "parent": "पालक",
+      "continueWith": "किंवा यासह सुरू ठेवा",
+      "google": "गूगल",
+      "twitter": "ट्विटर"
+    },
+    "register": {
+      "title": "EcoKids India मध्ये सामील व्हा",
+      "subtitle": "आपला पर्यावरण शिक्षण प्रवास सुरू करा",
+      "step1": {
+        "firstNameLabel": "पहिले नाव",
+        "firstNamePlaceholder": "पहिले नाव प्रविष्ट करा",
+        "lastNameLabel": "आडनाव",
+        "lastNamePlaceholder": "आडनाव प्रविष्ट करा",
+        "emailLabel": "ईमेल पत्ता",
+        "emailPlaceholder": "ईमेल पत्ता प्रविष्ट करा",
+        "passwordLabel": "पासवर्ड",
+        "passwordPlaceholder": "पासवर्ड तयार करा",
+        "confirmPasswordLabel": "पासवर्डची पुष्टी करा",
+        "confirmPasswordPlaceholder": "पासवर्डची पुष्टी करा",
+        "passwordMismatch": "पासवर्ड जुळत नाहीत",
+        "nextStep": "पुढील पायरी"
+      },
+      "step2": {
+        "gradeLabel": "इयत्ता",
+        "gradePlaceholder": "इयत्ता निवडा",
+        "schoolLabel": "शाळेचे नाव",
+        "schoolPlaceholder": "शाळेचे नाव प्रविष्ट करा",
+        "cityLabel": "शहर",
+        "cityPlaceholder": "शहर प्रविष्ट करा",
+        "stateLabel": "राज्य",
+        "statePlaceholder": "राज्य निवडा",
+        "back": "मागे",
+        "createAccount": "खाते तयार करा",
+        "creatingAccount": "खाते तयार होत आहे..."
+      },
+      "haveAccount": "आधीच खाते आहे?",
+      "signIn": "साइन इन"
+    },
+    "login_title": "Welcome Back! 🌿",
+    "login_subtitle": "Log in to continue your eco journey",
+    "email": "Email Address",
+    "emailPlaceholder": "you@example.com",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "loginBtn": "Log In",
+    "noAccount": "Don't have an account?",
+    "signupLink": "Sign up free",
+    "register_title": "Create Account 🌱",
+    "register_subtitle": "Join the EcoKids India community",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "confirmPassword": "Confirm Password",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "nextStep": "Continue",
+    "registerBtn": "Sign Up",
+    "hasAccount": "Already have an account?",
+    "loginLink": "Log In"
+  },
+  "home": {
+    "hero": {
+      "title": "EcoKids India मध्ये स्वागत आहे",
+      "subtitle": "शाश्वत भविष्यासाठी तरुण मनांना सक्षम करणे",
+      "description": "संवादात्मक खेळ, व्यावहारिक प्रयोग आणि आकर्षक क्विझद्वारे पर्यावरण संवर्धनाबद्दल शिकणाऱ्या संपूर्ण भारतातील हजारो विद्यार्थ्यांसोबत सामील व्हा.",
+      "getStarted": "सुरू करा",
+      "learnMore": "अधिक जाणून घ्या",
+      "watchVideo": "व्हिडिओ पहा"
+    },
+    "stats": {
+      "students": "सक्रिय विद्यार्थी",
+      "games": "संवादात्मक खेळ",
+      "experiments": "व्यावहारिक प्रयोग",
+      "quizzes": "शिक्षण क्विझ"
+    },
+    "features": {
+      "title": "EcoKids India का निवडावे?",
+      "subtitle": "सांस्कृतिकदृष्ट्या संबंधित सामग्रीसह भारतीय विद्यार्थ्यांसाठी खास डिझाइन केलेले",
+      "gamification": {
+        "title": "गेमिफाइड शिक्षण",
+        "description": "पर्यावरण संवर्धनाबद्दल शिकताना EcoPoints मिळवा, बॅज अनलॉक करा आणि लीडरबोर्डवर चढा."
+      },
+      "experiments": {
+        "title": "व्यावहारिक प्रयोग",
+        "description": "चरण-दर-चरण मार्गदर्शन आणि सुरक्षा सूचनांसह वास्तविक विज्ञान प्रयोग करा."
+      },
+      "multilingual": {
+        "title": "बहुभाषिक समर्थन",
+        "description": "भारतीय पर्यावरणीय संदर्भांसाठी अनुकूलित सामग्रीसह इंग्रजी किंवा मराठीमध्ये शिका."
+      },
+      "community": {
+        "title": "समुदाय शिक्षण",
+        "description": "संपूर्ण भारतातील विद्यार्थ्यांशी कनेक्ट करा आणि पर्यावरणीय आव्हानांमध्ये एकत्र सहभागी व्हा."
+      },
+      "certification": {
+        "title": "प्रमाणपत्रे आणि मान्यता",
+        "description": "आपल्या यशासाठी प्रमाणपत्रे मिळवा आणि आपले पर्यावरणीय ज्ञान प्रदर्शित करा."
+      },
+      "teachers": {
+        "title": "शिक्षक संसाधने",
+        "description": "विद्यार्थ्यांची प्रगती ट्रॅक करण्यासाठी आणि क्रियाकलाप नियुक्त करण्यासाठी शिक्षकांसाठी व्यापक साधने."
+      }
+    },
+    "featured": {
+      "title": "वैशिष्ट्यीकृत सामग्री",
+      "subtitle": "या महिन्याचे लोकप्रिय विषय आणि क्रियाकलाप",
+      "viewAll": "सर्व पहा"
+    },
+    "testimonials": {
+      "title": "विद्यार्थी काय म्हणतात",
+      "subtitle": "संपूर्ण भारतातील तरुण पर्यावरण योद्ध्यांकडून ऐका"
+    },
+    "cta": {
+      "title": "आपला पर्यावरण प्रवास सुरू करण्यास तयार आहात?",
+      "subtitle": "पर्यावरण संवर्धनाबद्दल शिकणाऱ्या हजारो विद्यार्थ्यांसोबत सामील व्हा",
+      "joinNow": "आता सामील व्हा - हे मोफत आहे!",
+      "alreadyMember": "आधीच सदस्य आहात? साइन इन करा"
+    },
+    "games_subtitle": "Games subtitle",
+    "app_banner": "Start Your Eco Journey Today",
+    "welcome": "Welcome",
+    "title": "Title",
+    "subtitle": "Subtitle",
+    "description": "Description",
+    "playCta": "Play Cta",
+    "exploreCta": "Explore Cta",
+    "mission_title": "Mission title",
+    "mission_text": "Mission text",
+    "games_section": "Games section",
+    "more_games": "More games",
+    "topics_section": "Topics section",
+    "topics_subtitle": "Topics subtitle",
+    "more_topics": "More topics"
+  },
+  "topics": {
+    "title": "पर्यावरणीय विषय",
+    "subtitle": "भारतीय विद्यार्थ्यांसाठी डिझाइन केलेले व्यापक पर्यावरणीय विषय एक्सप्लोर करा",
+    "searchPlaceholder": "विषय शोधा...",
+    "allCategories": "सर्व श्रेण्या",
+    "categories": {
+      "water": "जल संवर्धन",
+      "energy": "नवीकरणीय ऊर्जा",
+      "waste": "कचरा व्यवस्थापन",
+      "biodiversity": "जैवविविधता",
+      "climate": "हवामान बदल",
+      "pollution": "प्रदूषण नियंत्रण",
+      "forests": "वन संवर्धन",
+      "agriculture": "शाश्वत शेती"
+    },
+    "difficulty": {
+      "beginner": "नवशिक्या",
+      "intermediate": "मध्यम",
+      "advanced": "प्रगत"
+    },
+    "duration": {
+      "short": "< 15 मिनिटे",
+      "medium": "15-30 मिनिटे",
+      "long": "> 30 मिनिटे"
+    },
+    "filters": {
+      "difficulty": "अडचण पातळी",
+      "duration": "कालावधी",
+      "category": "श्रेणी"
+    },
+    "noResults": "आपल्या निकषांशी जुळणारे कोणतेही विषय सापडले नाहीत",
+    "loadMore": "अधिक लोड करा",
+    "readMore": "अधिक वाचा",
+    "startLearning": "शिकणे सुरू करा",
+    "questionsCount": "Questions Count",
+    "noTopics": "No experiments found.",
+    "minRead": "Min Read",
+    "read": "Read"
+  },
+  "games": {
+    "title": "शैक्षणिक खेळ",
+    "subtitle": "मजेदार आणि संवादात्मक खेळांद्वारे पर्यावरणीय संकल्पना शिका",
+    "playNow": "आता खेळा",
+    "highScore": "उच्च स्कोअर",
+    "playCount": "वेळा खेळले",
+    "difficulty": "अडचण",
+    "category": "श्रेणी",
+    "achievements": "यश",
+    "leaderboard": "लीडरबोर्ड",
+    "howToPlay": "कसे खेळायचे",
+    "gameOver": "खेळ संपला",
+    "score": "स्कोअर",
+    "level": "पातळी",
+    "lives": "जीवन",
+    "timeLeft": "उर्वरित वेळ",
+    "pause": "थांबवा",
+    "resume": "पुन्हा सुरू करा",
+    "restart": "पुन्हा सुरू करा",
+    "quit": "बाहेर पडा",
+    "locked": "Unlocks at Class ${game.gradeMin}",
+    "noGames": "No games found."
+  },
+  "experiments": {
+    "title": "विज्ञान प्रयोग",
+    "subtitle": "पर्यावरण विज्ञान समजून घेण्यासाठी व्यावहारिक प्रयोग करा",
+    "startExperiment": "प्रयोग सुरू करा",
+    "materials": "आवश्यक साहित्य",
+    "procedure": "कार्यपद्धती",
+    "safety": "सुरक्षा मार्गदर्शक तत्त्वे",
+    "observations": "निरीक्षणे",
+    "conclusion": "निष्कर्ष",
+    "submit": "परिणाम सबमिट करा",
+    "duration": "कालावधी",
+    "difficulty": "अडचण पातळी",
+    "ageGroup": "वय गट",
+    "supervision": "प्रौढ पर्यवेक्षण आवश्यक",
+    "materials_list": "साहित्याची यादी",
+    "step": "पायरी",
+    "note": "टीप",
+    "warning": "चेतावणी",
+    "tip": "टिप",
+    "uploadPhoto": "फोटो अपलोड करा",
+    "recordObservation": "निरीक्षण रेकॉर्ड करा",
+    "completed": "प्रयोग पूर्ण झाला",
+    "safety_solo": "Solo OK",
+    "safety_buddy": "With Buddy",
+    "safety_adult": "Adult Required"
+  },
+  "errors": {
+    "401": "अनधिकृत प्रवेश",
+    "403": "प्रवेश निषिद्ध",
+    "404": {
+      "title": "अरेरे! पृष्ठ सापडले नाही",
+      "description": "हे पृष्ठ ग्रह वाचवण्याच्या साहसात गेल्यासारखे दिसते! आमच्या सुंदर पृथ्वीबद्दल शिकण्याचा मार्ग शोधण्यात आम्ही तुम्हाला मदत करूया.",
+      "goHome": "होमवर जा",
+      "exploreTopics": "विषय एक्सप्लोर करा",
+      "goBack": "मागे जा",
+      "didYouKnow": "तुम्हाला माहीत आहे का?",
+      "funFact": "तुम्ही येथे असताना, येथे एक मजेदार तथ्य आहे: एक झाड वर्षातून 48 पौंड CO₂ शोषू शकते आणि 40 वर्षांच्या वयापर्यंत 1 टन CO₂ साठवू शकते!",
+      "popularDestinations": "लोकप्रिय गंतव्ये:"
+    },
+    "500": "अंतर्गत सर्व्हर त्रुटी",
+    "networkError": "नेटवर्क त्रुटी",
+    "tryAgain": "पुन्हा प्रयत्न करा",
+    "loginFailed": "Login failed. Please check your email and password.",
+    "registerFailed": "Registration failed."
+  },
+  "footer": {
+    "description": "EcoKids India तरुण मनांना पर्यावरणीय ज्ञानाने सक्षम करण्यासाठी आणि पर्यावरण-जागरूक नागरिकांची पिढी वाढवण्यासाठी समर्पित आहे.",
+    "quickLinks": "द्रुत दुवे",
+    "resources": "संसाधने",
+    "support": "समर्थन",
+    "legal": "कायदेशीर",
+    "privacyPolicy": "गोपनीयता धोरण",
+    "termsOfService": "सेवा अटी",
+    "cookiePolicy": "कुकी धोरण",
+    "contactUs": "आमच्याशी संपर्क साधा",
+    "faq": "वारंवार विचारले जाणारे प्रश्न",
+    "helpCenter": "मदत केंद्र",
+    "newsletter": "वृत्तपत्र",
+    "newsletterDescription": "नवीन सामग्री आणि वैशिष्ट्यांवर अपडेट मिळवण्यासाठी सदस्यता घ्या",
+    "emailPlaceholder": "आपला ईमेल प्रविष्ट करा",
+    "subscribe": "सदस्यता घ्या",
+    "followUs": "आमचे अनुसरण करा",
+    "copyright": "© 2024 EcoKids India. सर्व हक्क राखीव.",
+    "madeWithLove": "ग्रहासाठी ❤️ सह बनवले"
+  },
+  "activitiesList": {
+    "1": {
+      "title": "पक्षी फीडर बनवा",
+      "description": "पुनर्नवीनीकरण साहित्य वापरून एक साधे पक्षी फीडर तयार करा आणि स्थानिक वन्यजीवांचे निरीक्षण करा",
+      "category": "diy",
+      "difficulty": "सोपे",
+      "duration": "30 मिनिटे",
+      "materials": [
+        "प्लास्टिकची बाटली",
+        "बिया",
+        "दोरा",
+        "कात्री"
+      ],
+      "ageGroup": "6-12 वर्षे",
+      "instructions": [
+        "रिकामी प्लास्टिकची बाटली स्वच्छ करा",
+        "पक्ष्यांना बियांपर्यंत पोहोचण्यासाठी बाटलीच्या बाजूला लहान छिद्रे करा",
+        "बाटली पक्ष्यांच्या बियांनी भरा",
+        "वर छिद्रे करा आणि लटकवण्यासाठी दोरा बांधा",
+        "बाहेर लटकवा आणि कोणते पक्षी येतात ते पहा!"
+      ]
+    },
+    "2": {
+      "title": "हर्ब गार्डन सुरू करा",
+      "description": "खिडकीत स्वतःची औषधी वनस्पती वाढवा आणि शाश्वत अन्नाबद्दल जाणून घ्या",
+      "category": "indoor",
+      "difficulty": "सोपे",
+      "duration": "45 मिनिटे सेटअप",
+      "materials": [
+        "लहान कुंड्या",
+        "माती",
+        "औषधी वनस्पतींच्या बिया",
+        "पाणी"
+      ],
+      "ageGroup": "4-14 वर्षे",
+      "instructions": [
+        "तुळस, पुदिना किंवा कोथिंबीर सारख्या सोप्या वनस्पती निवडा",
+        "लहान कुंड्या मातीने भरा",
+        "पाकिटावरील सूचनेनुसार बिया पेरा",
+        "सूर्यप्रकाश येणाऱ्या खिडकीत ठेवा",
+        "नियमित पाणी द्या आणि त्यांना वाढताना पहा!"
+      ]
+    },
+    "3": {
+      "title": "निसर्ग शोध मोहीम",
+      "description": "तुमचा स्थानिक परिसर एक्सप्लोर करा आणि विविध वनस्पती, प्राणी आणि नैसर्गिक वस्तू शोधा",
+      "category": "outdoor",
+      "difficulty": "सोपे",
+      "duration": "60 मिनिटे",
+      "materials": [
+        "चेकलिस्ट",
+        "भिंग",
+        "गोळा करण्याची पिशवी"
+      ],
+      "ageGroup": "5-15 वर्षे",
+      "instructions": [
+        "शोधण्यासाठी वस्तूंची यादी बनवा (पाने, दगड, फुले)",
+        "स्थानिक पार्क किंवा निसर्ग क्षेत्रात जा",
+        "तुमच्या यादीतील वस्तू शोधा",
+        "फुले तोडण्याऐवजी फोटो घ्या",
+        "तुम्हाला काय सापडले यावर कुटुंबासह चर्चा करा"
+      ]
+    },
+    "4": {
+      "title": "पाणी फिल्टर प्रयोग",
+      "description": "एक साधा पाणी फिल्टर बनवा आणि पाणी शुद्धीकरण कसे काम करते ते जाणून घ्या",
+      "category": "science",
+      "difficulty": "मध्यम",
+      "duration": "45 मिनिटे",
+      "materials": [
+        "प्लास्टिकची बाटली",
+        "कापूस",
+        "वाळू",
+        "खडी",
+        "घाणेरडे पाणी"
+      ],
+      "ageGroup": "8-14 वर्षे",
+      "instructions": [
+        "प्लास्टिकची बाटली अर्धी कापून घ्या",
+        "वरच्या भागात कापूस, वाळू आणि खडीचे थर द्या",
+        "वरचा भाग खालच्या भागात उलटा ठेवा",
+        "फिल्टरमधून घाणेरडे पाणी ओता",
+        "पाणी कसे स्वच्छ होते ते पहा!"
+      ]
+    },
+    "5": {
+      "title": "इको-फ्रेंडली साफसफाई",
+      "description": "सुरक्षित साहित्य वापरून कुटुंबासह नैसर्गिक साफसफाईची उत्पादने बनवा",
+      "category": "family",
+      "difficulty": "सोपे",
+      "duration": "30 मिनिटे",
+      "materials": [
+        "बेकिंग सोडा",
+        "व्हिनेगर",
+        "लिंबू",
+        "स्प्रे बाटल्या"
+      ],
+      "ageGroup": "6-16 वर्षे",
+      "instructions": [
+        "स्क्रबिंग पेस्टसाठी बेकिंग सोडा आणि पाणी मिसळा",
+        "स्प्रे बाटलीत व्हिनेगर आणि पाणी मिसळा",
+        "ताजे वासासाठी लिंबू रस घाला",
+        "आधी लहान जागेवर चाचणी करा",
+        "कुटुंबासह साफसफाई करण्यासाठी वापरा"
+      ]
+    },
+    "6": {
+      "title": "रिसायकल आर्ट प्रोजेक्ट",
+      "description": "टाकाऊ साहित्य वापरून सुंदर कलाकृती तयार करा",
+      "category": "diy",
+      "difficulty": "मध्यम",
+      "duration": "60 मिनिटे",
+      "materials": [
+        "कार्डबोर्ड",
+        "प्लास्टिकचे डबे",
+        "रंग",
+        "गोंद"
+      ],
+      "ageGroup": "5-15 वर्षे",
+      "instructions": [
+        "स्वच्छ पुनर्वापरयोग्य साहित्य गोळा करा",
+        "तुमच्या आर्ट प्रोजेक्टचे डिझाइन प्लॅन करा",
+        "गरजेनुसार साहित्य कापा आणि आकार द्या",
+        "तुमची निर्मिती रंगवा आणि सजवा",
+        "तुमची इको-फ्रेंडली कला प्रदर्शित करा!"
+      ]
+    },
+    "7": {
+      "title": "ऊर्जा ऑडिट चॅलेंज",
+      "description": "घरात ऊर्जा वाचवण्याचे मार्ग शोधण्यासाठी कुटुंबासह काम करा",
+      "category": "family",
+      "difficulty": "मध्यम",
+      "duration": "90 मिनिटे",
+      "materials": [
+        "वही",
+        "थर्मामीटर",
+        "चेकलिस्ट"
+      ],
+      "ageGroup": "8-16 वर्षे",
+      "instructions": [
+        "घराच्या प्रत्येक खोलीची तपासणी करा",
+        "अनावश्यक चालू असलेले दिवे पहा",
+        "गळणाऱ्या खिडक्या किंवा दरवाजे शोधा",
+        "पाण्याच्या तापमानाचे सेटिंग तपासा",
+        "ऊर्जा कार्यक्षमता सुधारण्यासाठी योजना बनवा"
+      ]
+    },
+    "8": {
+      "title": "परागण बाग",
+      "description": "स्थानिक परिसंस्थेला मदत करण्यासाठी मधमाश्या आणि फुलपाखरांना आकर्षित करणारी फुले लावा",
+      "category": "outdoor",
+      "difficulty": "मध्यम",
+      "duration": "2 तास",
+      "materials": [
+        "देशी फुलांच्या बिया",
+        "माती",
+        "बागेची अवजारे",
+        "पाणी"
+      ],
+      "ageGroup": "6-14 वर्षे",
+      "instructions": [
+        "तुमच्या भागातील देशी फुलांबद्दल संशोधन करा",
+        "अंगणात सूर्यप्रकाश असलेली जागा निवडा",
+        "तण काढून माती तयार करा",
+        "सूचनेनुसार बिया पेरा",
+        "पाणी द्या आणि बागेची काळजी घ्या"
+      ]
+    },
+    "9": {
+      "title": "हवामान केंद्र",
+      "description": "हवामानाचे नमुने मोजण्यासाठी आणि ट्रॅक करण्यासाठी उपकरणे बनवा",
+      "category": "science",
+      "difficulty": "कठीण",
+      "duration": "2 तास",
+      "materials": [
+        "थर्मामीटर",
+        "पर्जन्यमापक",
+        "वातकुक्कुट",
+        "वही"
+      ],
+      "ageGroup": "10-16 वर्षे",
+      "instructions": [
+        "पारदर्शक डब्याने पर्जन्यमापक बनवा",
+        "कार्डबोर्ड आणि स्ट्रॉने वातकुक्कुट (Wind Vane) बनवा",
+        "सावलीत थर्मामीटर ठेवा",
+        "दररोजचे हवामान मोजमाप नोंदवा",
+        "काही आठवडे नमुने ट्रॅक करा"
+      ]
+    },
+    "10": {
+      "title": "कंपोस्टिंग बिन",
+      "description": "कचरा कमी करण्यासाठी आणि सुपीक माती तयार करण्यासाठी अन्न कचऱ्यापासून खत बनवणे सुरू करा",
+      "category": "outdoor",
+      "difficulty": "मध्यम",
+      "duration": "60 मिनिटे सेटअप",
+      "materials": [
+        "डबा",
+        "तपकिरी साहित्य",
+        "हिरवे साहित्य",
+        "फावडे"
+      ],
+      "ageGroup": "8-16 वर्षे",
+      "instructions": [
+        "एक डबा किंवा निश्चित जागा निवडा",
+        "तपकिरी साहित्य (पाने, कागद) याचा थर द्या",
+        "हिरवे साहित्य (अन्न कचरा, गवत) घाला",
+        "खत नियमित हलवा",
+        "तयार खत तुमच्या बागेत वापरा"
+      ]
+    },
+    "11": {
+      "title": "सোলার ओव्हन",
+      "description": "सোলার ओव्हन बनवा आणि फक्त सूर्यप्रकाशाने अन्न शिजवा",
+      "category": "science",
+      "difficulty": "कठीण",
+      "duration": "90 मिनिटे",
+      "materials": [
+        "कार्डबोर्ड बॉक्स",
+        "ॲल्युमिनियम फॉइल",
+        "काळा कागद",
+        "प्लास्टिक रॅप"
+      ],
+      "ageGroup": "10-16 वर्षे",
+      "instructions": [
+        "कार्डबोर्ड बॉक्समध्ये ॲल्युमिनियम फॉइल लावा",
+        "तळाशी काळा कागद ठेवा",
+        "ग्रीनहाऊस परिणामासाठी प्लास्टिक रॅप ने झाकून टाका",
+        "सूर्याकडे कोन करून ठेवा",
+        "साधे अन्न शिजवण्याचा प्रयत्न करा!"
+      ]
+    },
+    "12": {
+      "title": "वन्यजीव फोटोग्राफी",
+      "description": "स्थानिक वन्यजीवांचे दस्तऐवजीकरण करा आणि निसर्ग फोटोग्राफी जर्नल तयार करा",
+      "category": "outdoor",
+      "difficulty": "सोपे",
+      "duration": "2+ तास",
+      "materials": [
+        "कॅमेरा किंवा फोन",
+        "वही",
+        "दुर्बीण"
+      ],
+      "ageGroup": "8-18 वर्षे",
+      "instructions": [
+        "तुमच्या भागातील वन्यजीवांबद्दल संशोधन करा",
+        "सकाळी लवकर पार्क किंवा निसर्ग क्षेत्रात जा",
+        "प्राण्यांचे निरीक्षण करण्यासाठी संयि आणि शांत रहा",
+        "सुरक्षित अंतरावरून फोटो घ्या",
+        "तुमच्या फोटोसह निसर्ग जर्नल तयार करा"
+      ]
+    }
+  },
+  "ecobot": {
+    "title": "EcoBot",
+    "subtitle": "Your eco-coach",
+    "greeting": "Hi! I'm EcoBot 🌱 Ask me anything!",
+    "placeholder": "Ask me about environment..."
+  },
+  "loader": {
+    "growing": "Growing",
+    "preparing": "Preparing"
+  },
+  "banner": {
+    "thisPeriod": "This Week!",
+    "daysRemaining": "Days Remaining"
+  },
+  "missions": {
+    "preparing": "Weekly Missions Being Prepared",
+    "preparingDesc": "Your personalized eco-missions will be ready on Monday!",
+    "thisWeek": "This Week's Missions",
+    "resets": "Resets in",
+    "complete": "Complete!",
+    "completed": "completed",
+    "points": "points",
+    "allDone": "All missions completed this week!"
+  },
+  "more": "More",
+  "stats": {
+    "co2": "Prevented",
+    "trees": "Trees",
+    "water": "Water",
+    "schools": "Schools"
+  },
+  "waste_title": "Plastic Reduced",
+  "leaderboard": {
+    "rank": "Rank",
+    "student": "Student",
+    "youLabel": "You Label",
+    "subtitle": "Subtitle",
+    "podium_3rd": "Podium 3rd",
+    "ep": "points"
+  },
+  "loading": {
+    "leaderboard": "Leaderboard",
+    "default": "Logging in..."
+  },
+  "empty": {
+    "leaderboard": "Leaderboard"
+  },
+  "dashboard": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening",
+    "readyToLearn": "Ready to learn something new about our planet?",
+    "keepItUp": "Keep it up!",
+    "thisMonth": "This month",
+    "globalRank": "Among peers",
+    "quickStart": "Quick Start",
+    "viewAllActivities": "View All Activities",
+    "recommendedForYou": "Recommended for You",
+    "viewAllAchievements": "View All Achievements",
+    "todayGoal": "Today's Goal",
+    "streakGoal": "Complete 3 activities to maintain your streak!",
+    "twoOfThree": "2 of 3 completed",
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "subtitle": "Ready to learn something new about our planet?",
+    "currentStreak": "Current Streak",
+    "days": "days",
+    "playGames": "Play Games",
+    "playGamesDesc": "Learn through fun!",
+    "tryExperiments": "Try Experiments",
+    "tryExperimentsDesc": "Hands-on learning",
+    "takeQuizzes": "Take Quizzes",
+    "takeQuizzesDesc": "Test your knowledge",
+    "recentActivities": "Recent Activities",
+    "todaysGoal": "Today's Goal",
+    "goalDescription": "Complete 3 activities to maintain your streak!",
+    "completed": "completed",
+    "start": "Start"
+  },
+  "profile": {
+    "currentStreak": "Current Streak",
+    "totalEP": "Total EP",
+    "level": "Level",
+    "quizzesCompleted": "Quizzes Completed",
+    "recentActivity": "Recent Activity",
+    "badgesEarned": "Badges Earned",
+    "myBadges": "My Badges",
+    "grade": "Grade/Class",
+    "selectGrade": "Select Grade",
+    "school": "School Name",
+    "schoolPlaceholder": "e.g., Central High",
+    "city": "City / District",
+    "state": "State",
+    "title": "My Profile",
+    "editProfile": "Edit Profile",
+    "saveChanges": "Save Changes",
+    "personalInfo": "Personal Information",
+    "academicInfo": "Academic Information",
+    "preferences": "Preferences",
+    "privacy": "Privacy Settings",
+    "notifications": "Notification Settings",
+    "tabs": {
+      "overview": "Overview",
+      "achievements": "Achievements",
+      "activity": "Activity",
+      "certificates": "Certificates"
+    },
+    "stats": {
+      "totalPoints": "Total Points",
+      "currentLevel": "Current Level",
+      "badgesEarned": "Badges Earned",
+      "experimentsCompleted": "Experiments Completed",
+      "quizzesTaken": "Quizzes Taken",
+      "gamesPlayed": "Games Played",
+      "studyStreak": "Study Streak",
+      "rank": "Global Rank"
+    },
+    "achievements": "Achievements",
+    "certificates": "Certificates",
+    "downloadCertificate": "Download Certificate",
+    "shareCertificate": "Share Certificate"
+  },
+  "grades": {
+    "band_explorer": "Band explorer",
+    "all": "All",
+    "class": "Class",
+    "grade": "Grade"
+  },
+  "quiz": {
+    "subtitle": "Subtitle",
+    "start": "Start",
+    "quizComplete": "Quiz Complete"
+  },
+  "category": {
+    "all": "All",
+    "climate": "Climate",
+    "biodiversity": "Biodiversity",
+    "water": "Water",
+    "waste": "Waste"
+  },
+  "search_placeholder": "Search games...",
+  "game": {
+    "waste_sort": "Waste sort",
+    "water_journey": "Water journey",
+    "tree_plant": "Tree plant",
+    "climate_sim": "Climate sim"
+  },
+  "topic": {
+    "climate_title": "Climate title",
+    "bio_title": "Bio title",
+    "water_title": "Water title",
+    "waste_title": "Waste title"
+  },
+  "quizzes": {
+    "title": "Environmental Quizzes",
+    "subtitle": "Test your knowledge with our comprehensive quiz collection",
+    "takeQuiz": "Take Quiz",
+    "retakeQuiz": "Retake Quiz",
+    "questions": "Questions",
+    "timeLimit": "Time Limit",
+    "attempts": "Attempts",
+    "bestScore": "Best Score",
+    "averageScore": "Average Score",
+    "difficulty": "Difficulty",
+    "category": "Category",
+    "startQuiz": "Start Quiz",
+    "nextQuestion": "Next Question",
+    "previousQuestion": "Previous Question",
+    "submitQuiz": "Submit Quiz",
+    "timeUp": "Time's Up!",
+    "correct": "Correct!",
+    "incorrect": "Incorrect",
+    "explanation": "Explanation",
+    "results": "Quiz Results",
+    "score": "Your Score",
+    "passed": "Congratulations! You passed!",
+    "failed": "Keep learning and try again!",
+    "certificate": "Get Certificate",
+    "reviewAnswers": "Review Answers"
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "welcome": "Welcome back! Here's what's happening with EcoKids India.",
+    "exportReport": "Export Report",
+    "overview": "Overview",
+    "userManagement": "User Management",
+    "contentManagement": "Content Management",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "users": "Users",
+    "content": "Content",
+    "reports": "Reports",
+    "totalUsers": "Total Users",
+    "activeContent": "Active Content",
+    "gamesPlayed": "Games Played",
+    "experimentsDone": "Experiments Done",
+    "userEngagementTrends": "User Engagement Trends",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions",
+    "addNewTopic": "Add New Topic",
+    "createGame": "Create Game",
+    "addExperiment": "Add Experiment",
+    "viewReports": "View Reports"
+  }
+}

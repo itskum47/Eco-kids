@@ -1,0 +1,35 @@
+{
+  "name": "ecokids-india",
+  "version": "1.0.0",
+  "description": "Educational platform for Indian students to learn about environment and health",
+  "main": "server/server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run client:dev\"",
+    "server:dev": "cd server && npm run dev",
+    "client:dev": "cd client && npm run dev",
+    "server": "cd server && npm start",
+    "client": "cd client && npm start",
+    "build": "cd client && npm run build",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "seed": "cd server && npm run seed",
+    "check:queries": "node scripts/check-unbounded-queries.js"
+  },
+  "keywords": [
+    "education",
+    "environment",
+    "kids",
+    "india",
+    "react",
+    "nodejs",
+    "mongodb"
+  ],
+  "author": "EcoKids India Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "fast-glob": "^3.3.3"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}

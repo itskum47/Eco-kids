@@ -1,0 +1,77 @@
+:root {
+  /* === BACKGROUNDS === */
+  --bg: #04060a;
+  /* App background — deep dark */
+  --s1: #080d10;
+  /* Card backgrounds */
+  --s2: #0d1418;
+  /* Elevated surfaces, modals */
+  --b1: #141e22;
+  /* Subtle borders */
+  --b2: #1e2e34;
+  /* Visible borders */
+  --b3: #2a3f48;
+  /* Active borders, hover */
+
+  /* === ECO BRAND COLOURS === */
+  --g1: #00ff88;
+  /* Electric green — primary eco colour */
+  --g2: #00e5c8;
+  /* Teal green */
+  --g3: #7affd4;
+  /* Mint — pale variant */
+  --c1: #00d4ff;
+  /* Cyan — highlight, links */
+  --c2: #6ef0ff;
+  /* Light cyan */
+  --amber: #ffd700;
+  /* Gold — points, XP, leaderboard */
+  --orange: #ff8c00;
+  /* Warm orange — streak flame */
+  --red: #ff4444;
+  /* Danger, reject, wrong answer */
+  --pink: #ff6b9d;
+  /* Accent — badges, achievements */
+
+  /* === TEXT === */
+  --t1: #e8fff4;
+  /* Primary text — light with green tint */
+  --t2: #7ab898;
+  /* Secondary text */
+  --t3: #2d4a38;
+  /* Muted / placeholder */
+
+  /* === FONTS === */
+  --font-display: 'Instrument Serif', serif;
+  --font-ui: 'Syne', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
+
+  /* === GRADIENTS === */
+  --grad-eco: linear-gradient(135deg, var(--g1), var(--c1));
+  --grad-gold: linear-gradient(135deg, #ffd700, #ff8c00);
+  --grad-silver: linear-gradient(135deg, #c0c8d8, #808898);
+  --grad-bronze: linear-gradient(135deg, #cd7f32, #8b4513);
+  --grad-brand: linear-gradient(135deg, var(--g1) 0%, var(--c1) 50%, var(--amber) 100%);
+
+  /* === SHADOWS === */
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, .5), 0 1px 0 rgba(255, 255, 255, .03) inset;
+  --glow-g: 0 0 40px rgba(0, 255, 136, .35);
+  --glow-c: 0 0 40px rgba(0, 212, 255, .3);
+  --glow-gold: 0 0 40px rgba(255, 215, 0, .4);
+
+  /* === SPACING & RADIUS === */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --transition: all .2s cubic-bezier(.4, 0, .2, 1);
+  --transition-spring: all .35s cubic-bezier(.34, 1.56, .64, 1);
+}
+
+/* ── Accessibility ── */
+:focus-visible {
+  outline: 2px solid var(--g1);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
