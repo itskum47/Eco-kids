@@ -4,6 +4,8 @@ import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import FactCard from '../components/game/FactCard';
 import QuizPopup from '../components/game/QuizPopup';
+import GameHeader from '../components/game/GameHeader';
+import GameSummaryStats from '../components/game/GameSummaryStats';
 import { getFactsForGrade, getGradeGroup, getGradeGroupMeta, getQuestionsForGrade, getVocabForGrade } from '../utils/gradeContent';
 import { clamp, cycleIndex, getUserEcoCoins, getUserGrade, submitGameActivity } from '../utils/gameSession';
 
@@ -322,18 +324,17 @@ const EcoMazeGame = () => {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dbeafe,_#ecfeff_35%,_#f8fafc_100%)] px-4 pb-16 pt-8 md:px-8">
       <div className="mx-auto max-w-6xl pt-16">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-[30px] border border-cyan-100 bg-white/85 p-5 shadow-xl backdrop-blur">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-700">{t('gameHub.maze.title')}</p>
-            <h1 className="text-3xl font-black text-slate-900">{t('gameHub.maze.hero')}</h1>
-            <p className="text-sm text-slate-600">{t('gameHub.ui.gradeBand')}: {gradeMeta.shortLabel}</p>
-          </div>
-          <div className="flex flex-wrap gap-3 text-sm font-bold">
-            <div className="rounded-full bg-cyan-50 px-4 py-2 text-cyan-700">{t('gameHub.ui.ecoCoins')}: {ecoCoins}</div>
-            <div className="rounded-full bg-sky-50 px-4 py-2 text-sky-700">{t('gameHub.ui.level')}: {currentLevelIndex + 1}/{levels.length}</div>
-            <div className="rounded-full bg-amber-50 px-4 py-2 text-amber-700">{t('gameHub.ui.score')}: {score}</div>
-          </div>
-        </div>
+        <GameHeader
+          theme="cyan"
+          eyebrow={t('gameHub.maze.title')}
+          title={t('gameHub.maze.hero')}
+          subtitle={`${t('gameHub.ui.gradeBand')}: ${gradeMeta.shortLabel}`}
+          badges={[
+            { id: 'coins', label: `${t('gameHub.ui.ecoCoins')}: ${ecoCoins}`, className: 'bg-cyan-50 text-cyan-700' },
+            { id: 'level', label: `${t('gameHub.ui.level')}: ${currentLevelIndex + 1}/${levels.length}`, className: 'bg-sky-50 text-sky-700' },
+            { id: 'score', label: `${t('gameHub.ui.score')}: ${score}`, className: 'bg-amber-50 text-amber-700' },
+          ]}
+        />
 
         {phase === 'start' && (
           <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -474,20 +475,18 @@ const EcoMazeGame = () => {
             />
           )}
           {phase === 'summary' && (
-            <motion.div key="maze-summary" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-[34px] border border-cyan-100 bg-white p-8 shadow-2xl">
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-[0.16em] text-cyan-700">{t('gameHub.ui.sessionSummary')}</div>
-                  <h2 className="text-3xl font-black text-slate-900">{t('gameHub.ui.gameComplete')}</h2>
-                </div>
-                <button type="button" onClick={startGame} className="rounded-full bg-cyan-600 px-5 py-3 text-sm font-black text-white">{t('gameHub.ui.playAgain')}</button>
-              </div>
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="rounded-3xl bg-cyan-50 p-4 text-center"><div className="text-sm font-bold text-cyan-700">{t('gameHub.ui.score')}</div><div className="text-3xl font-black text-slate-900">{score}</div></div>
-                <div className="rounded-3xl bg-sky-50 p-4 text-center"><div className="text-sm font-bold text-sky-700">{t('gameHub.ui.quizCorrect')}</div><div className="text-3xl font-black text-slate-900">{questionsCorrect}</div></div>
-                <div className="rounded-3xl bg-rose-50 p-4 text-center"><div className="text-sm font-bold text-rose-700">CO₂ ppm</div><div className="text-3xl font-black text-slate-900">+{ppmPenalty}</div></div>
-                <div className="rounded-3xl bg-emerald-50 p-4 text-center"><div className="text-sm font-bold text-emerald-700">{t('gameHub.ui.planetHealth')}</div><div className="text-3xl font-black text-slate-900">{planetHealth}%</div></div>
-              </div>
+            <motion.div key="maze-summary" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+              <GameSummaryStats
+                title={t('gameHub.ui.gameComplete')}
+                ctaLabel={t('gameHub.ui.playAgain')}
+                onCta={startGame}
+                stats={[
+                  { id: 'score', label: t('gameHub.ui.score'), value: score, className: 'bg-cyan-50 text-cyan-700' },
+                  { id: 'quiz', label: t('gameHub.ui.quizCorrect'), value: questionsCorrect, className: 'bg-sky-50 text-sky-700' },
+                  { id: 'ppm', label: 'CO2 ppm', value: `+${ppmPenalty}`, className: 'bg-rose-50 text-rose-700' },
+                  { id: 'health', label: t('gameHub.ui.planetHealth'), value: `${planetHealth}%`, className: 'bg-emerald-50 text-emerald-700' },
+                ]}
+              />
             </motion.div>
           )}
         </AnimatePresence>

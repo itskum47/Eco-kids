@@ -411,7 +411,15 @@
       "matches": "Matches",
       "funFact": "Fun Fact",
       "landfillDiverted": "Landfill Diverted",
-      "sustainabilityScore": "Sustainability Score"
+      "sustainabilityScore": "Sustainability Score",
+      "moves": "Moves",
+      "timeLeft": "Time Left",
+      "pairsFound": "Pairs Found",
+      "sortedCorrectly": "Sorted Correctly",
+      "levelsDone": "Levels Done",
+      "startSorting": "Start Sorting",
+      "startConnecting": "Start Connecting",
+      "startMemory": "Start Memory Game"
     },
     "adventure": {
       "title": "Eco Adventure",
