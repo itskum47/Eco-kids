@@ -730,21 +730,11 @@ exports.syncOfflineSubmissions = asyncHandler(async (req, res) => {
   const { submissions } = req.body;
 
   if (!Array.isArray(submissions) || submissions.length === 0) {
-      // Log to approval audit trail (fire-and-forget, outside transaction)
-      ApprovalAuditLog.create({
-        teacher_id: req.user.id,
-        submission_id: submissionId,
-        action: 'approved',
-        action_source: 'teacher',
-        ip_address: req.ip,
-        session_id: req.headers['x-session-id'] || null
-      }).catch(() => {});
-
-      return res.status(200).json({
-        success: true,
-        message: 'Activity approved',
-        data: submission
-      });
+    return res.status(400).json({
+      success: false,
+      message: 'submissions array is required'
+    });
+  }
 
   const results = [];
   let successCount = 0;
