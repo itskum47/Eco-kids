@@ -1,6 +1,7 @@
 # EcoKids India Government Compliance Checklist
 
 Last Updated: 2026-03-07
+Last Updated: 2025-07-14
 
 ## Phase 5 Compliance Status
 
@@ -24,7 +25,7 @@ Last Updated: 2026-03-07
 
 | Standard | Score (/10) | Notes |
 |---|---:|---|
-| DPDP Act 2023 | 9 | Consent + deletion/export + parental consent flows in place |
+| DPDP Act 2023 | 9 | Route-level consent enforcement implemented (`requireConsent.js`); Redis TTL cache; ParentalConsent model queried at every protected route. Consent versioning scaffold in place — full Section 9 legal review required before production. |
 | UDISE+ Integration | 8 | Verification/linking/status with fallback registry |
 | NEP 2020 | 9 | Activity competency mapping + student/school reporting |
 | SDG Tracking | 8 | Goal mapping, analytics API, dashboard route |
@@ -36,3 +37,10 @@ Last Updated: 2026-03-07
 | CERT-In Security | 9 | Incident API + hardening checklist + stronger headers |
 
 Overall Readiness Score: **84/100**
+Notes:
+- DPDP route-level enforcement added (Prompt 1): `requireConsent` middleware applied to `/api/v1/activity`, `/api/v1/lessons`, `/api/v1/quizzes`, `/api/v1/leaderboards`
+- Offline sync endpoint fixed (Prompt 2): service worker now posts to `/api/v1/activity/submit`
+- Leaderboard anonymization added (Prompt 3): SHA-256 hashed user IDs, first-name last-initial display, emails removed
+- Teacher approval anomaly detection added (Prompt 8): Redis rate limiter (15 approvals/10 min), `ApprovalAuditLog` model, suspicious-approvals endpoint for state admins
+- Campus Chapter system added (Prompt 9): `CampusChapter` model, routes, UG-specific frontend pages
+- Platform is in **pre-launch pilot phase**. Production deployment pending partner school validation.

@@ -2,14 +2,38 @@ import React, { useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/slices/authSlice';
+import { schoolsAPI } from '../../utils/api';
 
 const SchoolAdminLayout = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useSelector(state => state.auth);
+    const [isSchoolPrivate, setIsSchoolPrivate] = useState(false);
 
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+    React.useEffect(() => {
+        const schoolId = user?.profile?.schoolId;
+        const isSchoolAdminSurface = ['school_admin', 'admin'].includes(user?.role);
+
+        if (!schoolId || !isSchoolAdminSurface) {
+            setIsSchoolPrivate(false);
+            return;
+        }
+
+        const loadSettings = async () => {
+            try {
+                const response = await schoolsAPI.getSchoolSettings(schoolId);
+                const enabled = response?.data?.data?.public_leaderboard_enabled;
+                setIsSchoolPrivate(enabled === false);
+            } catch {
+                setIsSchoolPrivate(false);
+            }
+        };
+
+        loadSettings();
+    }, [user?.profile?.schoolId, user?.role]);
 
     const handleLogout = () => {
         dispatch(logout());
@@ -40,7 +64,14 @@ const SchoolAdminLayout = () => {
 
                     <div className="px-6 py-4 border-b border-gray-200">
                         <div className="text-xs font-bold text-green-700 uppercase tracking-wider mb-1">School Network</div>
-                        <div className="text-sm text-gray-900 font-medium truncate" title={user?.profile?.school}>{user?.profile?.school || "Not Assigned"}</div>
+                        <div className="flex items-center gap-2">
+                            <div className="text-sm text-gray-900 font-medium truncate" title={user?.profile?.school}>{user?.profile?.school || "Not Assigned"}</div>
+                            {isSchoolPrivate && (
+                                <span className="rounded-full border border-gray-300 bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-700">
+                                    Private
+                                </span>
+                            )}
+                        </div>
                     </div>
 
                     {/* Navigation */}

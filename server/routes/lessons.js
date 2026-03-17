@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middleware/auth');
+const { requireConsent } = require('../middleware/requireConsent');
 const logger = require('../utils/logger');
 
 // GET /api/v1/lessons
@@ -59,8 +60,8 @@ router.get('/:lessonId', async (req, res) => {
 });
 
 // POST /api/v1/lessons/:lessonId/complete
-// Mark lesson as completed (requires auth)
-router.post('/:lessonId/complete', protect, async (req, res) => {
+// Mark lesson as completed (requires auth + parental consent for minors)
+router.post('/:lessonId/complete', protect, requireConsent, async (req, res) => {
   try {
     const { lessonId } = req.params;
     const userId = req.user.id;

@@ -234,12 +234,14 @@ app.use('/api/v1/quizzes', require('./routes/quizzes'));
 app.use('/api/v1/gamification', require('./routes/gamification'));
 app.use('/api/v1/progress', require('./routes/progress'));
 app.use('/api/v1/admin', require('./routes/admin'));
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api/v1/admin-cleanup', require('./routes/adminCleanup'));
 app.use('/api/v1/teacher', protect, schoolIsolation, require('./routes/teacher'));  // Phase 6: School isolation
 app.use('/api/v1/school-admin', protect, schoolIsolation, require('./routes/schoolAdmin'));  // Phase 6: School isolation
 app.use('/api/v1/district-admin', require('./routes/districtAdmin'));
 app.use('/api/v1/state-admin', require('./routes/stateAdmin'));
 app.use('/api/v1/schools', require('./routes/schools'));
+app.use('/api/schools', require('./routes/schools'));
 app.use('/api/v1/integration', require('./routes/integration')); // Added integration route
 app.use('/api/v1/upload', require('./routes/upload'));
 app.use('/api/v1/proxy', require('./routes/proxy'));
@@ -256,12 +258,14 @@ app.use('/api/v1/fraud', require('./routes/fraud'));
 app.use('/api/v1/school-onboarding', require('./routes/schoolOnboarding'));
 app.use('/api/v1/reporting', protect, schoolIsolation, require('./routes/reporting'));  // Phase 6: School isolation
 app.use('/api/v1/content', require('./routes/content'));
+app.use('/api/content', require('./routes/content'));
 app.use('/api/v1/subscriptions', require('./routes/subscription'));
 app.use('/api/v1/rewards', require('./routes/rewards'));
 app.use('/api/v1/store', require('./routes/store'));
 app.use('/api/v1/reports', require('./routes/reports'));
 app.use('/api/v1/challenges', require('./routes/challenges'));
 app.use('/api/v1/events', require('./routes/events'));
+app.use('/api/v1/campus-chapters', require('./routes/campusChapters'));
 
 // Phase 1: Environmental Education Routes
 app.use('/api/v1/environmental-lessons', require('./routes/environmentalLessons'));

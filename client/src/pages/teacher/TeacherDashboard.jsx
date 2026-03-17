@@ -1,16 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { apiClient as api } from '../../utils/api';
 import PendingApprovals from './PendingApprovals';
 import AssignmentsTab from './AssignmentsTab';
+import AppealsTab from './AppealsTab';
 
 const TeacherDashboard = () => {
     const { user, isAuthenticated } = useSelector(state => state.auth);
     const [activeTab, setActiveTab] = useState('approvals');
+    const [dashData, setDashData] = useState(null);
+    const [rankings, setRankings] = useState([]);
+    const [myRank, setMyRank] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const { t } = useTranslation(['teacher', 'common']);
 
     // Security Guard
     if (!isAuthenticated || user?.role !== 'teacher') {
         return <Navigate to="/login" replace />;
+    }
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const [dashRes, rankRes] = await Promise.all([
+                    api.get('/teacher/dashboard'),
+                    api.get('/teacher/school-rankings')
+                ]);
+                setDashData(dashRes.data);
+                setRankings(rankRes.data?.rankings || []);
+                setMyRank(rankRes.data?.myRank || null);
+            } catch (e) {
+                setError(e.response?.data?.message || e.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="p-6 animate-pulse">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-24 bg-neutral-100 rounded-xl" />
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-6 text-sm text-red-600 bg-red-50 rounded-xl">
+                Failed to load dashboard: {error}
+            </div>
+        );
     }
 
     return (
@@ -29,6 +77,55 @@ const TeacherDashboard = () => {
                     </p>
                 </div>
             </div>
+
+            {/* KPI Stat Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                {[
+                    { label: t('teacher:totalStudents'), value: dashData?.stats?.totalStudents, bg: 'bg-teal-50 text-teal-800' },
+                    { label: t('teacher:activeThisWeek'), value: dashData?.stats?.activeThisWeek, bg: 'bg-green-50 text-green-800' },
+                    { label: t('teacher:avgEcoPoints'), value: dashData?.stats?.avgEcoPoints, bg: 'bg-amber-50 text-amber-800' },
+                    { label: t('teacher:pendingReviews'), value: dashData?.stats?.pendingVerifications, bg: 'bg-orange-50 text-orange-800' },
+                ].map(card => (
+                    <div key={card.label} className={`rounded-xl p-4 ${card.bg}`}>
+                        <p className="text-2xl font-medium">{card.value ?? '—'}</p>
+                        <p className="text-xs mt-1 opacity-70">{card.label}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* District School Leaderboard */}
+            {rankings?.length > 0 && (
+                <div className="mb-8">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-gray-900">District Leaderboard</h3>
+                        {myRank && <span className="text-sm text-gray-600">Your school rank: #{myRank}</span>}
+                    </div>
+                    <div className="overflow-hidden rounded-xl border border-gray-100">
+                        <table className="min-w-full divide-y divide-gray-100">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">Rank</th>
+                                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500">School</th>
+                                    <th className="px-4 py-2 text-right text-xs font-semibold text-gray-500">Eco-Points</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 bg-white">
+                                {rankings.slice(0, 5).map((school, idx) => {
+                                    const rank = idx + 1;
+                                    const highlight = myRank === rank || school._id === user?.profile?.schoolId;
+                                    return (
+                                        <tr key={school._id} className={highlight ? 'bg-emerald-50' : ''}>
+                                            <td className="px-4 py-2 text-sm text-gray-700">#{rank}</td>
+                                            <td className="px-4 py-2 text-sm text-gray-900">{school.name}</td>
+                                            <td className="px-4 py-2 text-sm text-gray-900 text-right">{school.totalEcoPoints || 0}</td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
 
             {/* Navigation Tabs */}
             <div className="mb-6">
@@ -54,13 +151,25 @@ const TeacherDashboard = () => {
                         >
                             Assignments Support
                         </button>
+                        <button onClick={() => setActiveTab('appeals')}
+                            className={`${activeTab === 'appeals' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-600 hover:border-gray-300 hover:text-gray-900'} whitespace-nowrap border-b-2 py-4 px-1 text-sm font-bold transition-colors inline-flex items-center gap-2`}
+                            aria-current={activeTab === 'appeals' ? 'page' : undefined}>
+                            Appeals
+                            {(dashData?.stats?.appealed_submissions_count || 0) > 0 && (
+                                <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                                    {dashData.stats.appealed_submissions_count}
+                                </span>
+                            )}
+                        </button>
                     </nav>
                 </div>
             </div>
 
             {/* Tab Content Area */}
             <div className="py-4">
-                {activeTab === 'approvals' ? <PendingApprovals /> : <AssignmentsTab />}
+                {activeTab === 'approvals' && <PendingApprovals />}
+                {activeTab === 'assignments' && <AssignmentsTab />}
+                {activeTab === 'appeals' && <AppealsTab />}
             </div>
         </div>
     );

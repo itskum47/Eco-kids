@@ -69,19 +69,18 @@ The UI auto-detects the student's band and transforms the entire experience:
 10 Indian languages — fully parity-checked (550 translation keys each):
 
 `English` · `हिन्दी` · `বাংলা` · `தமிழ்` · `తెలుగు` · `मराठी` · `ಕನ್ನಡ` · `ગુજરાતી` · `ਪੰਜਾਬੀ` · `മലയാളം`
+> **Pre-Launch Notice:** This platform is in active pre-launch pilot phase. Production deployment pending pilot validation with partner schools. See [SCHOOL_ONBOARDING.md](SCHOOL_ONBOARDING.md) for pilot onboarding process.
 
 ### 🏫 School Infrastructure
-- **QR Code Login** — printable A4 QR cards for instant classroom login (no password needed)
-- **Multi-tenant Isolation** — school data is cryptographically isolated; cross-school queries are blocked and audit-logged
-- **Parental Consent System** — OTP-verified digital consent with DPDP Act 2023 compliant version history
+**Parental Consent System** — Route-level consent enforcement (`requireConsent` middleware) for all activity, quiz, and lesson completion routes. Under-18 students are blocked until a `ParentalConsent` record with `consentStatus: 'approved'` exists. Redis-cached (15 min TTL) for performance. OTP-verified consent collection UI included.
 - **Offline Activity Submission** — IndexedDB queue syncs automatically on reconnect
 - **Principal Reports** — PDF/CSV management reports with 5-slide presentation mode
 
 ### 👩‍🏫 Teacher & Admin Tooling
 - Submission review queue with approve/reject + rich feedback
-- Class progress heatmaps and engagement analytics
+| **DPDP Act 2023** | ✅ Implemented | Route-level enforcement via `requireConsent.js`; ParentalConsent model; Redis TTL cache. Consent versioning scaffold in place. Full DPDP Section 9 audit pending legal review. |
 - Bulk parental consent send/reminder/export
-- Immutable audit logs — every sensitive action is recorded with actor, IP, user-agent, and compliance flags
+| **RBAC** | ✅ Full | 7 roles (`student`, `teacher`, `faculty_advisor`, `school_admin`, `district_admin`, `state_admin`, `admin`), route-level enforcement, school isolation |
 
 ---
 

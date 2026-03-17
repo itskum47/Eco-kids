@@ -105,6 +105,16 @@ const SchoolSchema = new mongoose.Schema({
         email: String,
         phone: String
     },
+    public_leaderboard_enabled: {
+        type: Boolean,
+        default: true,
+        index: true
+    },
+    max_sensitivity_level: {
+        type: String,
+        enum: ['standard', 'sensitive', 'distressing'],
+        default: 'distressing'
+    },
     isActive: {
         type: Boolean,
         default: true

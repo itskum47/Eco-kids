@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
   FaPlus, 
@@ -12,19 +12,25 @@ import {
   FaQuestionCircle,
   FaSearch,
   FaFilter,
-  FaTags
+  FaTags,
+  FaFlag
 } from 'react-icons/fa';
+import { adminAPI } from '../../utils/api';
 
 const ContentManagement = () => {
   const [activeTab, setActiveTab] = useState('topics');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [contentReports, setContentReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [reportsError, setReportsError] = useState('');
 
   const tabs = [
     { id: 'topics', label: 'Topics', icon: FaBook, count: 45 },
     { id: 'games', label: 'Games', icon: FaGamepad, count: 12 },
     { id: 'experiments', label: 'Experiments', icon: FaFlask, count: 28 },
-    { id: 'quizzes', label: 'Quizzes', icon: FaQuestionCircle, count: 67 }
+    { id: 'quizzes', label: 'Quizzes', icon: FaQuestionCircle, count: 67 },
+    { id: 'content_reports', label: 'Content Reports', icon: FaFlag, count: contentReports.length }
   ];
 
   const categories = [
@@ -129,6 +135,38 @@ const ContentManagement = () => {
     ]
   };
 
+  const fetchContentReports = async () => {
+    try {
+      setReportsLoading(true);
+      setReportsError('');
+      const response = await adminAPI.getContentReports({ status: 'open' });
+      setContentReports(response.data?.data || []);
+    } catch (error) {
+      setReportsError(error?.response?.data?.message || 'Failed to load content reports');
+      setContentReports([]);
+    } finally {
+      setReportsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'content_reports') {
+      fetchContentReports();
+    }
+  }, [activeTab]);
+
+  const handleReportAction = async (reportId, status) => {
+    try {
+      await adminAPI.updateContentReport(reportId, {
+        status,
+        admin_note: status === 'resolved' ? 'Resolved by admin via content panel' : 'Dismissed by admin via content panel'
+      });
+      setContentReports((prev) => prev.filter((report) => report._id !== reportId));
+    } catch (error) {
+      setReportsError(error?.response?.data?.message || 'Failed to update report status');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'published': return 'bg-green-100 text-green-800';
@@ -213,6 +251,68 @@ const ContentManagement = () => {
     </div>
   );
 
+  const ContentReportsTable = () => (
+    <div className="bg-[var(--s1)] rounded-lg shadow overflow-hidden">
+      {reportsError && (
+        <div className="px-6 py-3 bg-red-50 border-b border-red-100 text-sm text-red-700">
+          {reportsError}
+        </div>
+      )}
+      {reportsLoading ? (
+        <div className="px-6 py-8 text-sm text-gray-500">Loading reports...</div>
+      ) : contentReports.length === 0 ? (
+        <div className="px-6 py-8 text-sm text-gray-500">No open content reports.</div>
+      ) : (
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reported At</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Content</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reporter</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-[var(--s1)] divide-y divide-gray-200">
+            {contentReports.map((report) => (
+              <tr key={report._id} className="hover:bg-gray-50 align-top">
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  {new Date(report.created_at).toLocaleString()}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-800">
+                  <div className="capitalize font-medium">{report.content_type}</div>
+                  <div className="text-xs text-gray-500">ID: {report.content_id}</div>
+                  {report.question_id && <div className="text-xs text-gray-500">QID: {report.question_id}</div>}
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-700">
+                  <div>{report.reporter_id?.name || 'Unknown'}</div>
+                  <div className="text-xs text-gray-500">{report.reporter_id?.email || 'N/A'}</div>
+                </td>
+                <td className="px-6 py-4 text-sm text-gray-700 max-w-[440px]">{report.report_text}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleReportAction(report._id, 'resolved')}
+                      className="px-3 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200"
+                    >
+                      Resolve
+                    </button>
+                    <button
+                      onClick={() => handleReportAction(report._id, 'dismissed')}
+                      className="px-3 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -294,7 +394,11 @@ const ContentManagement = () => {
 
         {/* Content Table */}
         <div className="p-6">
-          <ContentTable items={sampleContent[activeTab] || []} type={activeTab} />
+          {activeTab === 'content_reports' ? (
+            <ContentReportsTable />
+          ) : (
+            <ContentTable items={sampleContent[activeTab] || []} type={activeTab} />
+          )}
         </div>
       </div>
 

@@ -26,7 +26,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['student', 'teacher', 'ngo_coordinator', 'school_admin', 'district_admin', 'state_admin', 'admin'],
+      enum: ['student', 'teacher', 'ngo_coordinator', 'school_admin', 'district_admin', 'state_admin', 'admin', 'faculty_advisor'],
     default: 'student',
     required: [true, 'Please provide a user role'],
     index: true
@@ -71,9 +71,15 @@ const UserSchema = new mongoose.Schema({
     },
     grade: {
       type: String,
-      enum: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+        enum: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'ug1', 'ug2', 'ug3', 'ug4']
     },
     school: {
+      institutionType: {
+        type: String,
+        enum: ['school', 'college', 'university'],
+        default: 'school',
+        index: true
+      },
       type: String,
       trim: true,
       index: true

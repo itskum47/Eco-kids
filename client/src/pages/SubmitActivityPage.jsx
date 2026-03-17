@@ -14,22 +14,32 @@ import SDGBadge from '../components/SDGBadge';
 // Mapping activity types to SDG goals
 const ACTIVITY_SDG_MAP = {
   'tree-planting': [13, 15],
-  'plastic-reduction': [12],
-  'water-saving': [6],
+  'waste-segregation': [12],
+  'water-conservation': [6],
   'energy-saving': [7, 13],
-  'waste-recycling': [12],
-  'biodiversity-survey': [15],
-  'composting': [12, 15]
+  'composting': [12, 15],
+  'nature-walk': [15],
+  'quiz-completion': [4],
+  'stubble-management': [13, 15],
+  'sutlej-cleanup': [6, 14, 15],
+  'groundwater-conservation': [6, 13],
+  'air-quality-monitoring': [3, 11, 13],
+  'urban-tree-planting': [13, 15]
 };
 
 const ACTIVITY_TYPES = [
   { value: 'tree-planting', label: 'Tree Planting', impactNote: '~20 kg CO₂ over lifetime' },
-  { value: 'plastic-reduction', label: 'Plastic Reduction', impactNote: '~1 kg plastic reduced' },
-  { value: 'water-saving', label: 'Water Saving', impactNote: '~100 L saved' },
+  { value: 'waste-segregation', label: 'Waste Segregation', impactNote: '~1 kg waste recycled' },
+  { value: 'water-conservation', label: 'Water Conservation', impactNote: '~100 L saved' },
   { value: 'energy-saving', label: 'Energy Saving', impactNote: '~0.7 kg CO₂ saved' },
-  { value: 'waste-recycling', label: 'Waste Recycling', impactNote: '~1 kg waste recycled' },
-  { value: 'biodiversity-survey', label: 'Biodiversity Survey', impactNote: '~0.2 kg CO₂ indirect' },
-  { value: 'composting', label: 'Composting', impactNote: '~0.5 kg plastic reduced' }
+  { value: 'composting', label: 'Composting', impactNote: '~0.5 kg plastic reduced' },
+  { value: 'nature-walk', label: 'Nature Walk', impactNote: 'Local biodiversity observation' },
+  { value: 'quiz-completion', label: 'Quiz Completion', impactNote: 'Demonstrate climate knowledge' },
+  { value: 'stubble-management', label: 'Stubble Management (Punjab)', impactNote: 'Prevent crop residue burning' },
+  { value: 'sutlej-cleanup', label: 'Sutlej/Beas Cleanup', impactNote: 'Riverbank waste removal' },
+  { value: 'groundwater-conservation', label: 'Groundwater Conservation', impactNote: 'Save Punjab groundwater' },
+  { value: 'air-quality-monitoring', label: 'Air Quality Monitoring', impactNote: 'City AQI awareness' },
+  { value: 'urban-tree-planting', label: 'Urban Tree Planting', impactNote: 'Shade + air quality' }
 ];
 
 export default function SubmitActivityPage() {
@@ -41,6 +51,9 @@ export default function SubmitActivityPage() {
   const [error, setError] = useState('');
   const [submissionMessage, setSubmissionMessage] = useState('');  // For offline feedback
   const [submissions, setSubmissions] = useState([]);
+  const [appealDrafts, setAppealDrafts] = useState({});
+  const [appealSubmitting, setAppealSubmitting] = useState({});
+  const [appealSuccess, setAppealSuccess] = useState({});
   const [formData, setFormData] = useState({
     activityType: '',
     description: '',
@@ -77,6 +90,38 @@ export default function SubmitActivityPage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleStartAppeal = (submissionId) => {
+    setAppealDrafts(prev => ({ ...prev, [submissionId]: prev[submissionId] || '' }));
+  };
+
+  const handleAppealReasonChange = (submissionId, value) => {
+    setAppealDrafts(prev => ({ ...prev, [submissionId]: value.slice(0, 200) }));
+  };
+
+  const handleSubmitAppeal = async (submissionId) => {
+    const reason = (appealDrafts[submissionId] || '').trim();
+    if (!reason) {
+      setError('Please provide an appeal reason before submitting.');
+      return;
+    }
+
+    setAppealSubmitting(prev => ({ ...prev, [submissionId]: true }));
+    setError('');
+
+    try {
+      const response = await api.activity.appealSubmission(submissionId, { reason });
+      if (response?.success) {
+        setAppealSuccess(prev => ({ ...prev, [submissionId]: true }));
+        setAppealDrafts(prev => ({ ...prev, [submissionId]: '' }));
+        await loadMySubmissions();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to submit appeal');
+    } finally {
+      setAppealSubmitting(prev => ({ ...prev, [submissionId]: false }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -149,14 +194,14 @@ export default function SubmitActivityPage() {
   const selectedActivity = ACTIVITY_TYPES.find(a => a.value === formData.activityType);
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] pb-24 md:pb-10 overflow-x-hidden relative">
+    <div className="min-h-screen bg-gray-50 dark:bg-[var(--bg)] pb-24 md:pb-10 overflow-x-hidden relative">
       <Navbar />
 
       <main className="max-w-[760px] mx-auto px-4 sm:px-6 py-6 md:py-10 relative z-10">
 
         {/* Toggle Switch */}
         <div className="flex justify-center mb-8 md:mb-12">
-          <div className="bg-[var(--s2)] border border-[var(--b2)] rounded-full p-1.5 flex gap-1 relative shadow-lg">
+          <div className="bg-white dark:bg-[var(--s2)] border border-gray-300 dark:border-[var(--b2)] rounded-full p-1.5 flex gap-1 relative shadow-lg">
             {/* Animated Tab Indicator */}
             <motion.div
               layoutId="submitPageTab"
@@ -170,7 +215,7 @@ export default function SubmitActivityPage() {
 
             <button
               onClick={() => setView('submit')}
-              className={`relative z-10 font-ui font-bold text-[10px] md:text-sm uppercase tracking-widest px-6 md:px-8 py-3 rounded-full transition-colors ${view === 'submit' ? 'text-white' : 'text-[var(--t2)] hover:text-[var(--t1)]'
+              className={`relative z-10 font-ui font-bold text-[10px] md:text-sm uppercase tracking-widest px-6 md:px-8 py-3 rounded-full transition-colors ${view === 'submit' ? 'text-white' : 'text-gray-600 dark:text-[var(--t2)] hover:text-gray-900 dark:hover:text-[var(--t1)]'
                 }`}
             >
               Submit Activity
@@ -180,7 +225,7 @@ export default function SubmitActivityPage() {
                 setView('mySubmissions');
                 loadMySubmissions();
               }}
-              className={`relative z-10 font-ui font-bold text-[10px] md:text-sm uppercase tracking-widest px-6 md:px-8 py-3 rounded-full transition-colors ${view === 'mySubmissions' ? 'text-white' : 'text-[var(--t2)] hover:text-[var(--t1)]'
+              className={`relative z-10 font-ui font-bold text-[10px] md:text-sm uppercase tracking-widest px-6 md:px-8 py-3 rounded-full transition-colors ${view === 'mySubmissions' ? 'text-white' : 'text-gray-600 dark:text-[var(--t2)] hover:text-gray-900 dark:hover:text-[var(--t1)]'
                 }`}
             >
               My Logbook
@@ -207,10 +252,19 @@ export default function SubmitActivityPage() {
               {loading ? (
                 <div className="py-20 flex flex-col items-center">
                   <span className="w-12 h-12 border-4 border-[var(--s2)] border-t-[var(--v1)] rounded-full animate-spin mb-4" />
-                  <p className="font-ui text-[var(--t2)] uppercase tracking-widest text-xs font-bold">Loading submissions...</p>
+                  <p className="font-ui text-gray-600 dark:text-[var(--t2)] uppercase tracking-widest text-xs font-bold">Loading submissions...</p>
                 </div>
               ) : (
-                <MySubmissionsList submissions={submissions} setView={setView} />
+                <MySubmissionsList
+                  submissions={submissions}
+                  setView={setView}
+                  appealDrafts={appealDrafts}
+                  appealSubmitting={appealSubmitting}
+                  appealSuccess={appealSuccess}
+                  onStartAppeal={handleStartAppeal}
+                  onAppealReasonChange={handleAppealReasonChange}
+                  onSubmitAppeal={handleSubmitAppeal}
+                />
               )}
             </motion.div>
 
@@ -226,15 +280,15 @@ export default function SubmitActivityPage() {
             >
               {/* Form Title */}
               <div className="mb-8">
-                <h1 className="font-display text-4xl md:text-5xl font-normal leading-none mb-3 text-[var(--t1)]">Log Your Impact</h1>
-                <p className="font-ui text-[var(--t2)] text-sm md:text-base leading-relaxed">
+                <h1 className="font-display text-4xl md:text-5xl font-normal leading-none mb-3 text-gray-900 dark:text-[var(--t1)]">Log Your Impact</h1>
+                <p className="font-ui text-gray-600 dark:text-[var(--t2)] text-sm md:text-base leading-relaxed">
                   Every small action counts. Document your eco-activities for verification and earn XP towards your next level.
                 </p>
 
                 {/* SDG Impact Badge - Show when activity type selected */}
                 {selectedActivity && (
-                  <div className="mt-4 pt-4 border-t border-[var(--b2)]">
-                    <p className="font-ui text-[9px] uppercase tracking-widest font-bold text-[var(--t3)] mb-2">Supporting SDG Goals</p>
+                  <div className="mt-4 pt-4 border-t border-gray-300 dark:border-[var(--b2)]">
+                    <p className="font-ui text-[9px] uppercase tracking-widest font-bold text-gray-500 dark:text-[var(--t3)] mb-2">Supporting SDG Goals</p>
                     <div className="flex gap-2 flex-wrap">
                       {(ACTIVITY_SDG_MAP[formData.activityType] || []).map(goalNum => (
                         <SDGBadge key={goalNum} goalNumber={goalNum} size="md" />
@@ -274,7 +328,7 @@ export default function SubmitActivityPage() {
                 />
 
                 {/* Action Row */}
-                <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-[var(--b2)]">
+                <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-300 dark:border-[var(--b2)]">
                   <button
                     type="submit"
                     disabled={loading}

@@ -81,14 +81,16 @@ router.get('/', getQuizzes);
 // Protected routes
 router.use(protect);
 
-// Student routes
+// Student read routes (no consent required — just viewing)
 router.get('/user/my-attempts', getMyQuizAttempts);
 router.get('/my-stats', getMyStats);
 router.get('/:slug', getQuiz);
 
-router.post('/:id/start', startQuizAttempt);
-router.post('/:id/submit-answer', answerSubmissionValidation, submitAnswer);
+// Enforce parental consent for quiz participation (DPDP Act 2023)
+router.post('/:id/start', requireConsent, startQuizAttempt);
+router.post('/:id/submit-answer', requireConsent, answerSubmissionValidation, submitAnswer);
 router.post('/:id/complete',
+  requireConsent,
   [
     body('attemptId').isMongoId().withMessage('Invalid attempt ID'),
     body('totalTimeSpent').isInt({ min: 0 }).withMessage('Invalid time spent')

@@ -33,7 +33,8 @@ const QuizSchema = new mongoose.Schema({
       'waste-management',
       'renewable-energy',
       'soil-health',
-      'forest-conservation'
+        'forest-conservation',
+        'campus-action'
     ]
   },
   difficulty: {
@@ -319,6 +320,30 @@ const QuizSchema = new mongoose.Schema({
         explanation: String
       }]
     }
+  },
+  // Eco-anxiety sensitivity system
+  sensitivity_level: {
+    type: String,
+    enum: ['standard', 'sensitive', 'distressing'],
+    default: 'standard',
+    index: true
+  },
+  framing_statement: {
+    type: String,
+    trim: true,
+    maxlength: [300, 'Framing statement cannot exceed 300 characters']
+  },
+  action_items: {
+    type: [{ type: String, trim: true }],
+    validate: {
+      validator: (arr) => arr.length <= 3,
+      message: 'Maximum 3 action items allowed'
+    }
+  },
+  teacher_facilitation_note: {
+    type: String,
+    trim: true,
+    maxlength: [1000, 'Facilitation note cannot exceed 1000 characters']
   }
 }, {
   timestamps: true,

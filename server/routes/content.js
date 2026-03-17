@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
 const ContentItem = require('../models/ContentItem');
+const ContentReport = require('../models/ContentReport');
 const asyncHandler = require('../middleware/async');
 
 // @desc    Get published content (public) or all content (admin)
@@ -95,6 +96,40 @@ router.delete('/:id', protect, authorize('admin'), asyncHandler(async (req, res)
 
     await item.deleteOne();
     res.status(200).json({ success: true, message: 'Content deleted' });
+}));
+
+// @desc    Submit a content error report
+// @route   POST /api/content/:contentType/:contentId/report
+// @access  Private/Student,Teacher
+router.post('/:contentType/:contentId/report', protect, authorize('student', 'teacher'), asyncHandler(async (req, res) => {
+    const { contentType, contentId } = req.params;
+    const { question_id = null, report_text } = req.body;
+
+    if (!['lesson', 'quiz'].includes(contentType)) {
+        return res.status(400).json({ success: false, message: 'Invalid content type' });
+    }
+
+    if (!report_text || typeof report_text !== 'string' || report_text.trim().length < 10) {
+        return res.status(400).json({
+            success: false,
+            message: 'Please provide a clear report with at least 10 characters'
+        });
+    }
+
+    const report = await ContentReport.create({
+        reporter_id: req.user._id,
+        content_type: contentType,
+        content_id: contentId,
+        question_id,
+        report_text: report_text.trim(),
+        status: 'open'
+    });
+
+    res.status(201).json({
+        success: true,
+        message: 'Report submitted successfully',
+        data: report
+    });
 }));
 
 module.exports = router;

@@ -25,6 +25,11 @@ const LessonDetail = () => {
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportText, setReportText] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportFeedback, setReportFeedback] = useState({ type: '', message: '' });
+  const [warningDismissed, setWarningDismissed] = useState(false);
 
   const token = localStorage.getItem('token');
 
@@ -91,6 +96,40 @@ const LessonDetail = () => {
       }
     } finally {
       setCompleting(false);
+    }
+  };
+
+  const handleSubmitReport = async () => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    if (!reportText.trim() || reportText.trim().length < 10) {
+      setReportFeedback({ type: 'error', message: 'Please enter at least 10 characters.' });
+      return;
+    }
+
+    try {
+      setReportSubmitting(true);
+      setReportFeedback({ type: '', message: '' });
+
+      await axios.post(
+        `/api/v1/content/lesson/${id}/report`,
+        { report_text: reportText.trim() },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setReportText('');
+      setShowReportForm(false);
+      setReportFeedback({ type: 'success', message: 'Thanks. Your report has been submitted.' });
+    } catch (err) {
+      setReportFeedback({
+        type: 'error',
+        message: err.response?.data?.message || 'Failed to submit report.'
+      });
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
@@ -164,6 +203,32 @@ const LessonDetail = () => {
               )}
             </motion.div>
 
+            {/* Distressing content warning (dismissible) */}
+            {lesson.sensitivity_level === 'distressing' && !warningDismissed && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start justify-between gap-4 bg-amber-900/30 border border-amber-500/40 rounded-xl px-5 py-4"
+              >
+                <p className="font-ui text-sm text-amber-200">
+                  ⚠️ This topic discusses challenging environmental realities. Take a moment if you need to.
+                </p>
+                <button
+                  onClick={() => setWarningDismissed(true)}
+                  className="text-amber-400 hover:text-amber-200 font-bold text-sm flex-shrink-0"
+                >
+                  Continue
+                </button>
+              </motion.div>
+            )}
+
+            {/* Framing statement for sensitive/distressing content */}
+            {(lesson.sensitivity_level === 'sensitive' || lesson.sensitivity_level === 'distressing') && lesson.framing_statement && (
+              <div className="bg-[var(--s2)] border-l-4 border-[var(--c1)] rounded-r-xl px-5 py-4">
+                <p className="font-ui text-sm text-[var(--t2)] italic">{lesson.framing_statement}</p>
+              </div>
+            )}
+
             {/* Core Content */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="eco-card p-6 md:p-10">
               {lesson.content && (
@@ -203,6 +268,70 @@ const LessonDetail = () => {
                   </div>
                 </div>
               )}
+
+              {/* "What you can do" action items for sensitive/distressing content */}
+              {(lesson.sensitivity_level === 'sensitive' || lesson.sensitivity_level === 'distressing') && lesson.action_items?.length > 0 && (
+                <div className="mt-8 border-l-4 border-green-500 bg-green-900/20 rounded-r-xl px-5 py-4">
+                  <p className="font-display text-sm font-bold text-green-300 mb-3 uppercase tracking-widest">What you can do</p>
+                  <ul className="space-y-2">
+                    {lesson.action_items.map((item, idx) => (
+                      <li key={idx} className="flex items-start gap-2 font-ui text-sm text-green-100">
+                        <span className="text-green-400 mt-0.5">•</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="mt-8 pt-6 border-t border-[var(--b1)]">
+                {!showReportForm ? (
+                  <button
+                    onClick={() => {
+                      setShowReportForm(true);
+                      setReportFeedback({ type: '', message: '' });
+                    }}
+                    className="font-ui text-xs uppercase tracking-widest text-[var(--t3)] hover:text-[var(--v1)] transition-colors"
+                  >
+                    Report an issue in this lesson
+                  </button>
+                ) : (
+                  <div className="bg-[var(--s2)] border border-[var(--b2)] rounded-xl p-4 space-y-3">
+                    <p className="font-ui text-xs uppercase tracking-widest text-[var(--t3)]">Report content issue</p>
+                    <textarea
+                      value={reportText}
+                      onChange={(e) => setReportText(e.target.value)}
+                      rows={4}
+                      placeholder="Describe the factual error, outdated data, or unclear part..."
+                      className="w-full bg-[var(--s1)] border border-[var(--b2)] rounded-lg px-3 py-2 font-ui text-sm text-[var(--t1)] placeholder:text-[var(--t3)] focus:outline-none focus:border-[var(--v1)]"
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleSubmitReport}
+                        disabled={reportSubmitting}
+                        className="btn-primary text-xs py-2 px-4 disabled:opacity-60"
+                      >
+                        {reportSubmitting ? 'Submitting...' : 'Submit report'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowReportForm(false);
+                          setReportText('');
+                        }}
+                        className="font-ui text-xs uppercase tracking-widest text-[var(--t3)] hover:text-[var(--t1)]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {reportFeedback.message && (
+                  <p className={`mt-3 font-ui text-xs ${reportFeedback.type === 'success' ? 'text-[var(--g1)]' : 'text-[var(--red)]'}`}>
+                    {reportFeedback.message}
+                  </p>
+                )}
+              </div>
             </motion.div>
 
           </div>

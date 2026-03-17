@@ -1,12 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiRequest } from '../../utils/api';
+import { useSelector } from 'react-redux';
+import { apiRequest, schoolsAPI } from '../../utils/api';
+import PrivacySettingsCard from '../../components/school-admin/PrivacySettingsCard';
 
 const formatNumber = (value) => Number(value || 0).toLocaleString();
 
 const SchoolAdminDashboard = () => {
+    const { user } = useSelector((state) => state.auth);
     const [dashboard, setDashboard] = useState(null);
     const [activityMetrics, setActivityMetrics] = useState(null);
+    const [publicLeaderboardEnabled, setPublicLeaderboardEnabled] = useState(true);
+    const [settingsLoading, setSettingsLoading] = useState(true);
+    const [settingsSaving, setSettingsSaving] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -32,6 +38,53 @@ const SchoolAdminDashboard = () => {
 
         fetchDashboardData();
     }, []);
+
+    useEffect(() => {
+        const schoolId = user?.profile?.schoolId;
+        if (!schoolId) {
+            setSettingsLoading(false);
+            return;
+        }
+
+        const fetchSettings = async () => {
+            try {
+                setSettingsLoading(true);
+                const response = await schoolsAPI.getSchoolSettings(schoolId);
+                const enabled = response?.data?.data?.public_leaderboard_enabled;
+                setPublicLeaderboardEnabled(enabled !== false);
+            } catch {
+                // Keep default true if settings fetch fails.
+                setPublicLeaderboardEnabled(true);
+            } finally {
+                setSettingsLoading(false);
+            }
+        };
+
+        fetchSettings();
+    }, [user?.profile?.schoolId]);
+
+    const handleLeaderboardPrivacyToggle = async (enabled) => {
+        const schoolId = user?.profile?.schoolId;
+        if (!schoolId) {
+            setError('Missing school association for this admin account.');
+            return;
+        }
+
+        const previous = publicLeaderboardEnabled;
+        setPublicLeaderboardEnabled(enabled);
+
+        try {
+            setSettingsSaving(true);
+            await schoolsAPI.updateSchoolSettings(schoolId, {
+                public_leaderboard_enabled: enabled
+            });
+        } catch (err) {
+            setPublicLeaderboardEnabled(previous);
+            setError(err.response?.data?.message || 'Failed to update privacy settings.');
+        } finally {
+            setSettingsSaving(false);
+        }
+    };
 
     const derivedStats = useMemo(() => {
         const totalStudents = Number(dashboard?.totalStudents || 0);
@@ -197,6 +250,13 @@ const SchoolAdminDashboard = () => {
                     </div>
                 </section>
             </div>
+
+            <PrivacySettingsCard
+                enabled={publicLeaderboardEnabled}
+                loading={settingsLoading}
+                saving={settingsSaving}
+                onToggle={handleLeaderboardPrivacyToggle}
+            />
         </div>
     );
 };

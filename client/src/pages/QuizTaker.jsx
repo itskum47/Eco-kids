@@ -38,6 +38,10 @@ const QuizTaker = () => {
   const [timeSpent, setTimeSpent] = useState(0);
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState(null);
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportText, setReportText] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [reportFeedback, setReportFeedback] = useState({ type: '', message: '' });
 
   // Gamification states
   const [streak, setStreak] = useState(0);
@@ -70,6 +74,12 @@ const QuizTaker = () => {
     }
     return () => clearInterval(timerRef.current);
   }, [quizStarted, showResults, timeRemaining]); // eslint-disable-line
+
+  useEffect(() => {
+    setShowReportForm(false);
+    setReportText('');
+    setReportFeedback({ type: '', message: '' });
+  }, [currentQuestionIndex]);
 
   const fetchQuiz = async () => {
     try {
@@ -153,6 +163,38 @@ const QuizTaker = () => {
 
     if (isPassed) {
       confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#4ade80', '#38bdf8', '#facc15'] });
+    }
+  };
+
+  const handleSubmitQuestionReport = async () => {
+    if (!currentQuestion?._id) {
+      return;
+    }
+
+    if (!reportText.trim() || reportText.trim().length < 10) {
+      setReportFeedback({ type: 'error', message: 'Please enter at least 10 characters.' });
+      return;
+    }
+
+    try {
+      setReportSubmitting(true);
+      setReportFeedback({ type: '', message: '' });
+
+      await apiRequest('post', `/v1/content/quiz/${id}/report`, {
+        question_id: currentQuestion._id,
+        report_text: reportText.trim()
+      });
+
+      setReportText('');
+      setShowReportForm(false);
+      setReportFeedback({ type: 'success', message: 'Issue reported successfully.' });
+    } catch (error) {
+      setReportFeedback({
+        type: 'error',
+        message: error?.response?.data?.message || 'Failed to submit report.'
+      });
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
@@ -272,6 +314,54 @@ const QuizTaker = () => {
               <h2 className={`${headerFontClass} text-3xl md:text-4xl text-center leading-tight ${primaryColor} mb-12 max-w-3xl`}>
                 {currentQuestion.questionText}
               </h2>
+
+              <div className="w-full max-w-3xl mb-6">
+                {!showReportForm ? (
+                  <button
+                    onClick={() => {
+                      setShowReportForm(true);
+                      setReportFeedback({ type: '', message: '' });
+                    }}
+                    className="text-xs uppercase tracking-widest font-bold text-gray-500 hover:text-gray-800 transition-colors"
+                  >
+                    Report an issue in this question
+                  </button>
+                ) : (
+                  <div className="border border-gray-200 rounded-xl p-4 bg-white">
+                    <textarea
+                      value={reportText}
+                      onChange={(e) => setReportText(e.target.value)}
+                      rows={3}
+                      placeholder="Describe factual error, unclear wording, or incorrect options..."
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[var(--eco-green)]"
+                    />
+                    <div className="flex items-center gap-2 mt-3">
+                      <button
+                        onClick={handleSubmitQuestionReport}
+                        disabled={reportSubmitting}
+                        className="px-4 py-2 rounded-full bg-[var(--eco-green)] text-white text-xs font-bold uppercase tracking-widest disabled:opacity-60"
+                      >
+                        {reportSubmitting ? 'Submitting...' : 'Submit report'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowReportForm(false);
+                          setReportText('');
+                        }}
+                        className="text-xs uppercase tracking-widest font-bold text-gray-500 hover:text-gray-800"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {reportFeedback.message && (
+                  <p className={`mt-2 text-xs font-semibold ${reportFeedback.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                    {reportFeedback.message}
+                  </p>
+                )}
+              </div>
 
               <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
                 {currentQuestion.questionType === 'multiple-choice' ? (

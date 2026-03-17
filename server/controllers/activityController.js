@@ -1,6 +1,10 @@
 const ActivitySubmission = require('../models/ActivitySubmission');
 const User = require('../models/User');
+const Teacher = require('../models/Teacher');
+const School = require('../models/School');
+const Notification = require('../models/Notification');
 const AuditLog = require('../models/AuditLog');
+const ApprovalAuditLog = require('../models/ApprovalAuditLog');
 const asyncHandler = require('../middleware/async');
 const { calculateImpact } = require('../utils/impactCalculator');
 const { awardEcoPoints } = require('../utils/ecoPointsManager');
@@ -19,7 +23,50 @@ const {
 } = require('../services/fraudService');
 const { getCompetenciesForActivity } = require('../config/nepMapping');
 const { getSdgsForActivity } = require('../config/sdgMapping');
+const { ACTIVITY_POINTS_MAP } = require('../config/activityTypes');
 const { sendSms } = require('../services/smsService');
+const { aiVerificationQueue } = require('../queues/aiVerificationQueue');
+const { uploadImage } = require('../services/storageService');
+const { redisClient } = require('../services/cacheService');
+
+const APPROVAL_RATE_WINDOW = 10 * 60; // 10-minute rolling window in seconds
+const APPROVAL_RATE_LIMIT = 15; // max approvals per window
+
+async function findAssignedTeacherForStudent(student) {
+  const schoolId = student.profile?.schoolId || student.schoolId || student.school;
+  if (!schoolId) return null;
+  const grade = String(student.profile?.grade || student.class || '').trim();
+  const section = String(student.section || '').trim();
+  const classCandidates = [];
+
+  if (grade && section) classCandidates.push(`${grade}${section}`);
+  if (grade) classCandidates.push(grade);
+  if (section) classCandidates.push(section);
+
+  let teacherRecord = null;
+
+  if (schoolId && classCandidates.length > 0) {
+    teacherRecord = await Teacher.findOne({
+      schoolId,
+      classes: { $in: classCandidates }
+    }).select('userId').lean();
+  }
+
+  if (!teacherRecord && schoolId) {
+    teacherRecord = await Teacher.findOne({ schoolId }).select('userId').lean();
+  }
+
+  if (teacherRecord?.userId) {
+    return teacherRecord.userId;
+  }
+
+  const fallbackTeacher = await User.findOne({
+    role: 'teacher',
+    'profile.schoolId': schoolId
+  }).select('_id').lean();
+
+  return fallbackTeacher?._id || null;
+}
 
 exports.submitActivity = asyncHandler(async (req, res) => {
   const { activityType, description, latitude, longitude, geoAccuracy } = req.body;
@@ -33,8 +80,18 @@ exports.submitActivity = asyncHandler(async (req, res) => {
 
   // === FRAUD CHECK 1: Validate activity type early ===
   const validTypes = [
-    'tree-planting', 'waste-recycling', 'water-saving',
-    'energy-saving', 'plastic-reduction', 'composting', 'biodiversity-survey'
+    'tree-planting',
+    'waste-segregation',
+    'water-conservation',
+    'energy-saving',
+    'composting',
+    'nature-walk',
+    'quiz-completion',
+    'stubble-management',
+    'sutlej-cleanup',
+    'groundwater-conservation',
+    'air-quality-monitoring',
+    'urban-tree-planting'
   ];
 
   if (!activityType || !description) {
@@ -61,12 +118,31 @@ exports.submitActivity = asyncHandler(async (req, res) => {
     });
   }
 
+  const flags = [];
+  const schoolObjectId = req.user.profile?.schoolId;
+  if (schoolObjectId) {
+    const schoolDoc = await School.findById(schoolObjectId).select('coordinates');
+    if (schoolDoc?.coordinates?.lat && schoolDoc?.coordinates?.lng && latitude !== undefined && longitude !== undefined) {
+      const toRad = (v) => (v * Math.PI) / 180;
+      const R = 6371000; // metres
+      const dLat = toRad(parseFloat(latitude) - schoolDoc.coordinates.lat);
+      const dLon = toRad(parseFloat(longitude) - schoolDoc.coordinates.lng);
+      const lat1 = toRad(schoolDoc.coordinates.lat);
+      const lat2 = toRad(parseFloat(latitude));
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+      const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      if (distance > 5000) {
+        flags.push('outside_school_proximity');
+      }
+    }
+  }
+
   // === FRAUD CHECK 3: Submission cooldown ===
   const cooldownResult = await checkSubmissionCooldown(req.user.id, activityType);
   if (!cooldownResult.allowed) {
     return res.status(429).json({
       success: false,
-      message: `You've submitted ${cooldownResult.currentCount} ${activityType} activities this week. Maximum ${cooldownResult.maxAllowed} allowed.`,
+      message: `You've submitted ${cooldownResult.currentCount} ${activityType} activities today. Maximum ${cooldownResult.maxAllowed} allowed.`,
       nextAvailableAt: cooldownResult.nextAvailableAt,
       retryAfterSeconds: cooldownResult.retryAfterSeconds,
       fraudCheck: 'cooldown'
@@ -120,30 +196,13 @@ exports.submitActivity = asyncHandler(async (req, res) => {
     }
   }
 
-  // === Upload to Cloudinary ===
-  const cloudinary = require('../config/cloudinary');
-  const uploadToCloudinary = (buffer) => {
-    return new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        {
-          folder: 'ecokids-submissions',
-          resource_type: 'image',
-          quality: 'auto',
-          fetch_format: 'auto'
-        },
-        (error, result) => {
-          if (error) return reject(error);
-          resolve(result);
-        }
-      );
-      const streamifier = require('streamifier');
-      streamifier.createReadStream(buffer).pipe(stream);
-    });
-  };
-
-  const uploadResult = await uploadToCloudinary(req.file.buffer);
-  const imageUrl = uploadResult.secure_url;
-  const publicId = uploadResult.public_id;
+  const uploadResult = await uploadImage(
+    req.file.buffer,
+    req.file.originalname,
+    req.file.mimetype
+  );
+  const imageUrl = uploadResult.url;
+  const imageFileId = uploadResult.fileId;
 
   if (imageUrl && !validator.isURL(imageUrl)) {
     return res.status(400).json({
@@ -157,11 +216,13 @@ exports.submitActivity = asyncHandler(async (req, res) => {
     user: req.user.id,
     idempotencyKey: req.idempotencyKey,
     activityType,
+    activityPoints: ACTIVITY_POINTS_MAP[activityType] || 10,
     nepCompetencies: getCompetenciesForActivity(activityType),
     sdgGoals: getSdgsForActivity(activityType),
     evidence: {
       imageUrl,
-      publicId,
+      imageFileId,
+      publicId: imageFileId,
       description,
       location: latitude && longitude ? { latitude, longitude } : undefined
     },
@@ -171,16 +232,40 @@ exports.submitActivity = asyncHandler(async (req, res) => {
       accuracy: geoAccuracy ? parseFloat(geoAccuracy) : undefined,
       timestamp: new Date()
     },
+    deviceTimestamp: req.body.deviceTimestamp ? new Date(req.body.deviceTimestamp) : undefined,
     status: 'pending',
     impactApplied: false,
     fileHash,
     pHash: pHash || undefined,
-    school: req.user.profile ? req.user.profile.school : undefined,
+    flags,
+    school: schoolObjectId || req.user.profile?.schoolId || undefined,
+    schoolId: schoolObjectId || req.user.profile?.schoolId || undefined,
     district: req.user.profile ? req.user.profile.district : undefined,
     state: req.user.profile ? req.user.profile.state : undefined
   });
 
   await submission.save();
+
+  const hour = new Date().getHours();
+  if (hour >= 23 || hour < 5) {
+    submission.flags = [...(submission.flags || []), 'late_night_submission'];
+    submission.status = 'pending_review';
+    await submission.save();
+  }
+
+  try {
+    await aiVerificationQueue.add('verify-image', {
+      submissionId: submission._id,
+      imageUrl: submission.evidence.imageUrl,
+      activityType: submission.activityType
+    }, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 2000 }
+    });
+  } catch (error) {
+    console.error('[AI Queue] Error enqueueing verification job:', error);
+  }
+
 
   const teacher = submission.school
     ? await User.findOne({ role: 'teacher', 'profile.school': submission.school }).select('_id').lean()
@@ -238,13 +323,31 @@ exports.getPendingSubmissions = asyncHandler(async (req, res) => {
 
   const { limit = 50, offset = 0 } = req.query;
 
-  const submissions = await ActivitySubmission.find({ status: 'pending' })
+  const schoolId = req.user.profile?.schoolId || req.user.schoolId;
+  const schoolName = req.user.profile?.school || req.user.school;
+
+  if (!schoolId && !schoolName) {
+    return res.status(403).json({
+      success: false,
+      message: 'Teacher account not associated with a school. Contact admin.'
+    });
+  }
+
+  const schoolFilter = schoolId ? { schoolId } : { school: schoolName };
+
+  const submissions = await ActivitySubmission.find({
+    status: { $in: ['pending', 'pending_ai', 'pending_review', 'ai_processing'] },
+    ...schoolFilter
+  })
     .sort({ createdAt: -1 })
     .skip(parseInt(offset))
     .limit(parseInt(limit))
     .populate('user', 'name profile.school profile.grade');
 
-  const total = await ActivitySubmission.countDocuments({ status: 'pending' });
+  const total = await ActivitySubmission.countDocuments({
+    status: { $in: ['pending', 'pending_ai', 'pending_review', 'ai_processing'] },
+    ...schoolFilter
+  });
 
   res.status(200).json({
     success: true,
@@ -281,7 +384,6 @@ exports.verifyActivity = asyncHandler(async (req, res) => {
     });
   }
 
-  // Grace Fallback Boundary check
   if (
     submissionInfo.school &&
     req.user.profile && req.user.profile.school &&
@@ -293,28 +395,64 @@ exports.verifyActivity = asyncHandler(async (req, res) => {
     });
   }
 
-  if (status === 'rejected') {
-    const { deleteImage } = require('../services/cloudinaryService');
+  // Approval rate-limit check: max 15 approvals per 10-minute rolling window (anti-fraud)
+  if (status === 'approved') {
+    try {
+      const rateKey = `approval_rate:${req.user.id}`;
+      const now = Math.floor(Date.now() / 1000);
+      const windowStart = now - APPROVAL_RATE_WINDOW;
 
-    const submission = await ActivitySubmission.findOne({ _id: submissionId, status: 'pending' });
+      // Use Redis sorted set: score = timestamp, member = unique key per approval
+      await redisClient.zremrangebyscore(rateKey, '-inf', windowStart);
+      const windowCount = await redisClient.zcard(rateKey);
+
+      if (windowCount >= APPROVAL_RATE_LIMIT) {
+        return res.status(429).json({
+          error: 'APPROVAL_RATE_LIMIT',
+          message: 'Unusually high approval rate detected. Your approvals have been paused for review. Contact your school administrator.'
+        });
+      }
+
+      await redisClient.zadd(rateKey, now, `${submissionId}:${now}`);
+      await redisClient.expire(rateKey, APPROVAL_RATE_WINDOW + 60);
+    } catch (_) { /* Redis failure is non-blocking — approval proceeds */ }
+  }
+
+  const reviewableStatuses = ['pending', 'pending_ai', 'pending_review'];
+
+  if (status === 'rejected') {
+    const submission = await ActivitySubmission.findOneAndUpdate(
+      { _id: submissionId, status: { $in: reviewableStatuses } },
+      {
+        status: 'teacher_rejected',
+        rejectionReason: (rejectionReason || '').trim() || 'Submission rejected by teacher',
+        reviewedBy: req.user.id,
+        reviewedAt: new Date(),
+        teacherReview: {
+          teacherId: req.user._id,
+          decision: 'reject',
+          notes: (rejectionReason || '').trim(),
+          reviewedAt: new Date()
+        }
+      },
+      { new: true }
+    ).populate('user');
 
     if (!submission) {
       return res.status(400).json({ success: false, message: 'Already processed or not pending' });
     }
 
-    // Delete image from Cloudinary permanently to stop storage bloat
-    if (submission.evidence && submission.evidence.publicId) {
-      await deleteImage(submission.evidence.publicId);
-    }
+    // Log to approval audit trail
+    ApprovalAuditLog.create({
+      teacher_id: req.user.id,
+      submission_id: submissionId,
+      action: 'rejected',
+      action_source: 'teacher',
+      ip_address: req.ip,
+      session_id: req.headers['x-session-id'] || null
+    }).catch(() => {});
 
-    // Remove the orphaned record forever
-    await submission.deleteOne();
-
-    return res.status(200).json({
-      success: true,
-      message: 'Activity rejected and evidence deleted permanently',
-      data: {}
-    });
+    return res.status(200).json({ success: true, message: 'Activity rejected', data: submission });
   }
 
   if (status === 'approved') {
@@ -325,10 +463,10 @@ exports.verifyActivity = asyncHandler(async (req, res) => {
       const submission = await ActivitySubmission.findOneAndUpdate(
         {
           _id: submissionId,
-          status: 'pending'
+          status: { $in: reviewableStatuses }
         },
         {
-          status: 'approved',
+          status: 'teacher_approved',
           impactApplied: true,
           verifiedBy: req.user.id,
           reviewedBy: req.user.id,
@@ -346,13 +484,12 @@ exports.verifyActivity = asyncHandler(async (req, res) => {
         return res.status(400).json({ success: false, message: 'Already processed or not pending' });
       }
 
-      // 2. Create OutboxEvent in the same transaction
       await OutboxEvent.create([{
         type: 'SUBMISSION_APPROVED',
         payload: {
           submissionId: submission._id,
           studentId: submission.user._id,
-          action: 'approve'
+          action: 'approve_teacher'
         },
         processed: false
       }], { session });
@@ -387,19 +524,19 @@ exports.verifyActivity = asyncHandler(async (req, res) => {
         { new: true, session }
       );
 
-      console.log(`[Activity Verified] ${submission.activityType}`, impact);
-
       await session.commitTransaction();
       session.endSession();
 
-      await awardEcoPoints(submission.user._id, rewardValues.ACTIVITY_APPROVED, 'activity-approved', { sourceType: 'activity' });
+      await awardEcoPoints(submission.user._id, rewardValues.ACTIVITY_APPROVED, 'activity-approved', {
+        sourceType: 'activity',
+        sourceModel: 'ActivitySubmission',
+        submissionId: submission._id,
+        activityType: submission.activityType
+      });
 
-      // Wire badge evaluation
       const gamificationService = require('../services/gamificationService');
       const newBadges = await gamificationService.evaluateBadgesForUser(submission.user._id);
       if (newBadges?.length > 0) {
-        console.log(`[Badges] User ${submission.user._id} unlocked: ${newBadges.map(b => b.name).join(', ')}`);
-
         const freshUser = await User.findById(submission.user._id).select('name parentPhone');
         const phone = String(freshUser?.parentPhone || '').replace(/\D/g, '').slice(-10);
         if (/^\d{10}$/.test(phone)) {
@@ -420,12 +557,172 @@ exports.verifyActivity = asyncHandler(async (req, res) => {
     } catch (error) {
       await session.abortTransaction();
       session.endSession();
-      console.error("[verifyActivity] Transaction error", error);
+      console.error('[verifyActivity] Transaction error', error);
       return res.status(500).json({ success: false, message: 'Server Error during approval' });
     }
   }
 });
 
+exports.appealSubmission = asyncHandler(async (req, res) => {
+  const { submissionId } = req.params;
+  const { reason } = req.body;
+
+  const trimmedReason = (reason || '').trim();
+  if (!trimmedReason) {
+    return res.status(400).json({ success: false, message: 'Appeal reason is required' });
+  }
+  if (trimmedReason.length > 200) {
+    return res.status(400).json({ success: false, message: 'Appeal reason cannot exceed 200 characters' });
+  }
+
+  const submission = await ActivitySubmission.findById(submissionId).populate('user', 'name profile.grade section class profile.schoolId');
+  if (!submission) {
+    return res.status(404).json({ success: false, message: 'Submission not found' });
+  }
+
+  if (String(submission.user?._id || submission.user) !== String(req.user.id)) {
+    return res.status(403).json({ success: false, message: 'You can only appeal your own submissions' });
+  }
+
+  if (!['rejected', 'teacher_rejected'].includes(submission.status)) {
+    return res.status(400).json({ success: false, message: 'Only rejected submissions can be appealed' });
+  }
+
+  if (submission.status === 'appealed' || submission.appealedAt) {
+    return res.status(400).json({ success: false, message: 'This submission has already been appealed' });
+  }
+
+  submission.status = 'appealed';
+  submission.appealReason = trimmedReason;
+  submission.appealedAt = new Date();
+  submission.appealed_at = submission.appealedAt;
+  await submission.save();
+
+  const teacherUserId = await findAssignedTeacherForStudent(submission.user);
+  if (teacherUserId) {
+    await Notification.create({
+      userId: teacherUserId,
+      type: 'system',
+      title: 'New Appeal Submitted',
+      message: `${submission.user?.name || 'A student'} appealed a rejected activity submission.`,
+      data: {
+        submissionId: submission._id,
+        activityType: submission.activityType,
+        reason: trimmedReason,
+        studentId: submission.user?._id || req.user.id
+      }
+    }).catch(() => {});
+  }
+
+  return res.status(200).json({ success: true, data: submission });
+});
+
+exports.getAppealedSubmissions = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'teacher' && req.user.role !== 'admin' && req.user.role !== 'school_admin') {
+    return res.status(403).json({ success: false, message: 'Not authorized to view appealed submissions' });
+  }
+
+  const schoolId = req.user.profile?.schoolId || req.user.schoolId;
+  const schoolName = req.user.profile?.school || req.user.school;
+
+  if (!schoolId && !schoolName) {
+    return res.status(403).json({ success: false, message: 'Teacher account not associated with a school. Contact admin.' });
+  }
+
+  const schoolFilter = schoolId ? { schoolId } : { school: schoolName };
+  const submissions = await ActivitySubmission.find({
+    ...schoolFilter,
+    status: 'appealed'
+  })
+    .sort({ appealedAt: -1, createdAt: -1 })
+    .populate('user', 'name profile.grade class section');
+
+  return res.status(200).json({
+    success: true,
+    count: submissions.length,
+    data: submissions
+  });
+});
+
+exports.resolveAppeal = asyncHandler(async (req, res) => {
+  if (req.user.role !== 'teacher' && req.user.role !== 'admin' && req.user.role !== 'school_admin') {
+    return res.status(403).json({ success: false, message: 'Not authorized to resolve appeals' });
+  }
+
+  const { submissionId } = req.params;
+  const { decision, teacherNote } = req.body;
+
+  if (!['approved', 'rejected'].includes(decision)) {
+    return res.status(400).json({ success: false, message: 'Decision must be either "approved" or "rejected"' });
+  }
+
+  const submission = await ActivitySubmission.findById(submissionId).populate('user');
+  if (!submission) {
+    return res.status(404).json({ success: false, message: 'Submission not found' });
+  }
+
+  if (submission.status !== 'appealed') {
+    return res.status(400).json({ success: false, message: 'Submission is not in appealed state' });
+  }
+
+  if (decision === 'approved') {
+    submission.status = 'approved';
+    submission.impactApplied = true;
+    submission.reviewedBy = req.user.id;
+    submission.reviewedAt = new Date();
+    submission.appealDecision = 'approved';
+    submission.appealTeacherNote = (teacherNote || '').trim();
+    submission.appealResolvedAt = new Date();
+    submission.appealResolvedBy = req.user.id;
+    await submission.save();
+
+    const impact = calculateImpact(submission.activityType, {});
+    await User.findByIdAndUpdate(submission.user._id, {
+      $inc: {
+        'environmentalImpact.treesPlanted': impact.treesPlanted || 0,
+        'environmentalImpact.co2Prevented': impact.co2Prevented || 0,
+        'environmentalImpact.waterSaved': impact.waterSaved || 0,
+        'environmentalImpact.plasticReduced': impact.plasticReduced || 0,
+        'environmentalImpact.energySaved': impact.energySaved || 0,
+        'environmentalImpact.activitiesCompleted': 1
+      },
+      $set: { 'environmentalImpact.lastImpactUpdate': new Date() }
+    });
+
+    await awardEcoPoints(submission.user._id, submission.activityPoints || rewardValues.ACTIVITY_APPROVED, 'appeal-approved', {
+      sourceType: 'activity',
+      sourceModel: 'ActivitySubmission',
+      submissionId: submission._id,
+      activityType: submission.activityType,
+      idempotencyKey: `appeal:approved:${submission._id.toString()}`
+    });
+  } else {
+    submission.status = 'appeal_rejected';
+    submission.appealDecision = 'rejected';
+    submission.appealTeacherNote = (teacherNote || '').trim();
+    submission.appealResolvedAt = new Date();
+    submission.appealResolvedBy = req.user.id;
+    submission.reviewedBy = req.user.id;
+    submission.reviewedAt = new Date();
+    await submission.save();
+  }
+
+  await Notification.create({
+    userId: submission.user._id,
+    type: 'system',
+    title: 'Appeal Decision Update',
+    message: decision === 'approved'
+      ? 'Your appeal was approved. Eco points have been credited.'
+      : 'Your appeal was reviewed and rejected by your teacher.',
+    data: {
+      submissionId: submission._id,
+      decision,
+      teacherNote: (teacherNote || '').trim()
+    }
+  }).catch(() => {});
+
+  return res.status(200).json({ success: true, data: submission });
+});
 // Phase 6: Offline Activity Sync Endpoint
 // POST /api/v1/activity/sync-offline
 // Accepts array of offline submissions stored in IndexedDB and syncs them to server
@@ -433,11 +730,21 @@ exports.syncOfflineSubmissions = asyncHandler(async (req, res) => {
   const { submissions } = req.body;
 
   if (!Array.isArray(submissions) || submissions.length === 0) {
-    return res.status(400).json({
-      success: false,
-      message: 'Submissions array is required and must not be empty'
-    });
-  }
+      // Log to approval audit trail (fire-and-forget, outside transaction)
+      ApprovalAuditLog.create({
+        teacher_id: req.user.id,
+        submission_id: submissionId,
+        action: 'approved',
+        action_source: 'teacher',
+        ip_address: req.ip,
+        session_id: req.headers['x-session-id'] || null
+      }).catch(() => {});
+
+      return res.status(200).json({
+        success: true,
+        message: 'Activity approved',
+        data: submission
+      });
 
   const results = [];
   let successCount = 0;
@@ -467,8 +774,18 @@ exports.syncOfflineSubmissions = asyncHandler(async (req, res) => {
 
       // Check for valid activity type
       const validTypes = [
-        'tree-planting', 'waste-recycling', 'water-saving',
-        'energy-saving', 'plastic-reduction', 'composting', 'biodiversity-survey'
+        'tree-planting',
+        'waste-segregation',
+        'water-conservation',
+        'energy-saving',
+        'composting',
+        'nature-walk',
+        'quiz-completion',
+        'stubble-management',
+        'sutlej-cleanup',
+        'groundwater-conservation',
+        'air-quality-monitoring',
+        'urban-tree-planting'
       ];
 
       if (!validTypes.includes(activityType)) {
@@ -516,7 +833,7 @@ exports.syncOfflineSubmissions = asyncHandler(async (req, res) => {
           lng: parseFloat(longitude),
           timestamp: new Date()
         } : undefined,
-        status: 'pending',
+        status: 'pending_ai',
         impactApplied: false,
         school: req.user.profile ? req.user.profile.school : undefined,
         district: req.user.profile ? req.user.profile.district : undefined,
@@ -526,6 +843,19 @@ exports.syncOfflineSubmissions = asyncHandler(async (req, res) => {
       });
 
       await submission.save();
+
+      try {
+        await aiVerificationQueue.add('verify-image', {
+          submissionId: submission._id,
+          imageUrl: submission.evidence.imageUrl,
+          activityType: submission.activityType
+        }, {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 2000 }
+        });
+      } catch (error) {
+        console.error('[AI Queue] Error enqueueing verification job from offline sync:', error);
+      }
 
       // Notify teacher of new submission via WebSocket if available
       const teacher = submission.school

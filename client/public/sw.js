@@ -120,7 +120,7 @@ async function syncOfflineSubmissions() {
 
         for (const submission of submissions) {
             try {
-                const response = await fetch('/api/activity/submit', {
+                const response = await fetch('/api/v1/activity/submit', {
                     method: 'POST',
                     body: submission.formData,
                     headers: { 'Authorization': `Bearer ${submission.token}` }
@@ -131,9 +131,11 @@ async function syncOfflineSubmissions() {
                     const deleteTx = db.transaction('pending-submissions', 'readwrite');
                     deleteTx.objectStore('pending-submissions').delete(submission.id);
                     console.log('[SW] Synced offline submission:', submission.id);
+                } else {
+                    console.error('[SW] Sync rejected by server for submission:', submission.id, 'status:', response.status);
                 }
             } catch (err) {
-                console.error('[SW] Sync failed for submission:', submission.id);
+                console.error('[SW] Sync failed for submission:', submission.id, err);
             }
         }
     } catch (err) {

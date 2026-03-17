@@ -1,5 +1,4 @@
 import axios from 'axios';
-import toast from 'react-hot-toast';
 
 const getAdaptiveTimeout = () => {
   const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
@@ -16,7 +15,6 @@ const getAdaptiveTimeout = () => {
 // Create axios instance
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api/v1',
-  timeout: getAdaptiveTimeout(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -25,141 +23,75 @@ const api = axios.create({
 // Keep explicit name for compatibility with existing references and docs.
 const apiClient = api;
 
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    config.timeout = getAdaptiveTimeout();
+api.interceptors.request.use(async (config) => {
+  config.timeout = getAdaptiveTimeout();
 
-    // Preserve existing /v1/... callers while using /api/v1 as the shared base URL.
-    if (typeof config.url === 'string' && config.url.startsWith('/v1/')) {
-      config.url = config.url.replace(/^\/v1/, '');
-    }
+  if (typeof config.url === 'string' && config.url.startsWith('/v1/')) {
+    config.url = config.url.replace(/^\/v1/, '');
+  }
 
-    // Don't add Authorization header for public auth routes
-    const publicRoutes = ['/auth/login', '/auth/register', '/auth/forgot-password'];
-    const isPublicRoute = publicRoutes.some(route => config.url.includes(route));
+  config.headers = config.headers || {};
 
-    if (!isPublicRoute) {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+  const cached = sessionStorage.getItem('appwrite_session');
+  const cachedUserId = sessionStorage.getItem('appwrite_userid');
+  if (cached) {
+    config.headers['x-appwrite-session'] = cached;
+    if (cachedUserId) {
+      config.headers['x-appwrite-userid'] = cachedUserId;
     }
     return config;
-  },
-  (error) => {
-    return Promise.reject(error);
   }
-);
 
-// Response interceptor
+  try {
+    const { account } = await import('../config/appwrite.js');
+    const session = await account.getSession('current');
+    const token = session.secret || session.$id;
+    sessionStorage.setItem('appwrite_session', token);
+    config.headers['x-appwrite-session'] = token;
+  } catch {
+    // No session. Protected routes can return 401.
+  }
+
+  return config;
+});
+
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  async (error) => {
-    const { response } = error;
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      const url = err.config?.url || '';
+      const skipRedirect = [
+        '/auth/me',
+        '/auth/check-email',
+        '/auth/register-profile'
+      ].some((path) => url.includes(path));
 
-    if (response) {
-      const { status, data } = response;
-
-      switch (status) {
-        case 401:
-          // Unauthorized: clear client token state and force a fresh login session.
-          localStorage.removeItem('token');
-          delete api.defaults.headers.common['Authorization'];
-
-          try {
-            let storeModule = null;
-            let authModule = null;
-
-            if (typeof require === 'function') {
-              try {
-                storeModule = require('../store/index');
-              } catch (storeError) {
-                storeModule = require('../store/store');
-              }
-              authModule = require('../store/slices/authSlice');
-            } else {
-              storeModule = await import('../store/store');
-              authModule = await import('../store/slices/authSlice');
-            }
-
-            const reduxStore = storeModule.default || storeModule.store;
-            const logoutAction = authModule.logout;
-            if (reduxStore && typeof logoutAction === 'function') {
-              reduxStore.dispatch(logoutAction());
-            }
-          } catch (dispatchError) {
-            console.warn('Failed to dispatch logout on 401:', dispatchError);
-          }
-
-          if (window.location.pathname !== '/login') {
-            toast.error('Session expired. Please login again.');
-            window.location.href = '/login?session=expired';
-          }
-          break;
-
-        case 403:
-          // Forbidden
-          toast.error(data?.message || 'Access denied');
-          break;
-
-        case 404:
-          // Avoid global toast spam for API 404s; route-level 404 UI handles navigation misses.
-          console.warn(data?.message || 'Resource not found');
-          break;
-
-        case 422:
-          // Validation errors
-          if (data?.errors && Array.isArray(data.errors)) {
-            data.errors.forEach(err => {
-              toast.error(`${err.field}: ${err.message}`);
-            });
-          } else {
-            toast.error(data?.message || 'Validation failed');
-          }
-          break;
-
-        case 429:
-          // Rate limit exceeded
-          toast.error('Too many requests. Please try again later.');
-          break;
-
-        case 500:
-          // Server error
-          toast.error('Server error. Please try again later.', { id: 'err_500' });
-          break;
-
-        default:
-          // Generic error
-          toast.error(data?.message || 'An error occurred', { id: data?.message || 'err_generic' });
+      if (
+        !skipRedirect &&
+        !window.location.pathname.includes('/login') &&
+        !window.location.pathname.includes('/register')
+      ) {
+        sessionStorage.removeItem('appwrite_session');
+        sessionStorage.removeItem('appwrite_userid');
+        window.location.href = '/login';
       }
-    } else if (error.code === 'ECONNABORTED') {
-      // Timeout - silent for EcoBot, logged only
-      console.warn('Request timeout:', error);
-    } else if (error.message === 'Network Error') {
-      // Network error - silent for EcoBot, logged only
-      console.warn('Network error:', error);
-    } else {
-      // Unknown error - silent for EcoBot, logged only
-      console.warn('Unexpected error:', error);
     }
-
-    return Promise.reject(error);
+    return Promise.reject(err);
   }
 );
 
 // API endpoints
 export const authAPI = {
-  register: (userData) => api.post('/v1/auth/register', userData),
-  login: (credentials) => api.post('/v1/auth/login', credentials),
-  logout: () => api.post('/v1/auth/logout'),
-  getMe: () => api.get('/v1/auth/me'),
+  register: (userData) => api.post('/auth/register', userData),
+  login: (credentials) => api.post('/auth/login', credentials),
+  logout: () => api.post('/auth/logout'),
+  verifyEmail: (payload) => api.post('/auth/verify-email', payload),
+  resendVerification: (payload) => api.post('/auth/resend-verification', payload),
+  getMe: () => api.get('/auth/me'),
   updateProfile: (profileData) => api.put('/v1/auth/profile', profileData),
   updatePassword: (passwordData) => api.put('/v1/auth/password', passwordData),
-  forgotPassword: (email) => api.post('/v1/auth/forgot-password', { email }),
-  resetPassword: (token, password) => api.put(`/v1/auth/reset-password/${token}`, { password }),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+  resetPassword: ({ email, otp, newPassword }) => api.post('/auth/reset-password', { email, otp, newPassword }),
   deleteAccount: (password) => api.delete('/v1/auth/account', { data: { password } }),
 };
 
@@ -241,7 +173,10 @@ export const activityAPI = {
   },
   getMySubmissions: () => api.get('/v1/activity/my'),
   getPendingSubmissions: () => api.get('/v1/activity/pending'),
-  verifyActivity: (submissionId, verifyData) => api.put(`/v1/activity/${submissionId}/verify`, verifyData)
+  getAppealedSubmissions: () => api.get('/v1/activity/appeals/pending'),
+  verifyActivity: (submissionId, verifyData) => api.put(`/v1/activity/${submissionId}/verify`, verifyData),
+  appealSubmission: (submissionId, payload) => api.post(`/v1/activity/${submissionId}/appeal`, payload),
+  resolveAppeal: (submissionId, payload) => api.put(`/v1/activity/${submissionId}/appeal/resolve`, payload)
 };
 
 export const usersAPI = {
@@ -253,6 +188,22 @@ export const usersAPI = {
   getUserAchievements: () => api.get('/v1/users/achievements'),
   getLeaderboard: (params) => api.get('/v1/users/leaderboard', { params }),
   updateUserRole: (id, role) => api.put(`/v1/users/${id}/role`, { role }),
+  updateLanguage: (language) => api.patch('/v1/users/me/language', { language }),
+};
+
+export const schoolsAPI = {
+  getSchoolSettings: (schoolId) => api.get(`/v1/schools/${schoolId}/settings`),
+  updateSchoolSettings: (schoolId, settings) => api.patch(`/v1/schools/${schoolId}/settings`, settings)
+};
+
+export const contentReportsAPI = {
+  submitReport: ({ contentType, contentId, questionId, reportText }) => api.post(
+    `/v1/content/${contentType}/${contentId}/report`,
+    {
+      question_id: questionId || null,
+      report_text: reportText
+    }
+  )
 };
 
 export const adminAPI = {
@@ -261,6 +212,8 @@ export const adminAPI = {
   getUserManagement: (params) => api.get('/v1/admin/users', { params }),
   getAnalytics: (params) => api.get('/v1/admin/analytics', { params }),
   getSystemHealth: () => api.get('/v1/admin/system-health'),
+  getContentReports: (params) => api.get('/v1/admin/content-reports', { params }),
+  updateContentReport: (reportId, payload) => api.patch(`/v1/admin/content-reports/${reportId}`, payload),
   moderateContent: (type, id, action) => api.put(`/v1/admin/content/${type}/${id}/moderate`, { action }),
   bulkOperations: (operations) => api.post('/v1/admin/content/bulk', { operations }),
 };
