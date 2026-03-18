@@ -164,6 +164,15 @@ export const habitsAPI = {
   getMyStreak: () => api.get('/v1/habits/streak')
 };
 
+export const impactCalculatorAPI = {
+  getMetrics: (period = 'month') => api.get('/v1/impact/me/metrics', { params: { period } }),
+  logDailyAction: (payload) => api.post('/v1/impact/daily-action', payload),
+  getBaseline: () => api.get('/v1/impact/baseline'),
+  setBaseline: (payload) => api.post('/v1/impact/baseline', payload),
+  getComparison: (period = 'month') => api.get('/v1/impact/comparison', { params: { period } }),
+  getTrend: (months = 6) => api.get('/v1/impact/trend', { params: { months } })
+};
+
 export const activityAPI = {
   submitActivity: (activityData) => {
     const { idempotencyKey, ...data } = activityData;

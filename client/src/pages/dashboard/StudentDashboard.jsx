@@ -234,6 +234,9 @@ const StudentDashboard = () => {
                   <Link to="/submit-activity" className="btn-primary w-full shadow-[0_0_20px_rgba(108,71,255,0.2)] hover:shadow-[0_0_30px_rgba(108,71,255,0.4)]">
                     📸 Log Activity
                   </Link>
+                  <Link to="/dashboard/trees" className="btn-primary w-full shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+                    🌱 Trees NEW
+                  </Link>
                   <Link to="/leaderboard" className="btn-ghost w-full">
                     🏆 View Leaderboard
                   </Link>
