@@ -7,7 +7,13 @@ const {
   getImpactLeaderboard,
   getDistrictImpact,
   getUserImpactHistory,
-  getImpactStats
+  getImpactStats,
+  logDailyImpactAction,
+  getMyImpactMetrics,
+  getImpactBaseline,
+  setImpactBaseline,
+  getImpactComparison,
+  getImpactTrend
 } = require('../controllers/impactController');
 const { protect } = require('../middleware/auth');
 
@@ -24,6 +30,12 @@ router.get('/me', protect, getMyImpact);
  * @access  Private
  */
 router.get('/me/history', protect, getUserImpactHistory);
+router.get('/me/metrics', protect, getMyImpactMetrics);
+router.get('/baseline', protect, getImpactBaseline);
+router.post('/baseline', protect, setImpactBaseline);
+router.post('/daily-action', protect, logDailyImpactAction);
+router.get('/comparison', protect, getImpactComparison);
+router.get('/trend', protect, getImpactTrend);
 
 /**
  * @desc    Get global environmental statistics

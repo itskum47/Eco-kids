@@ -271,6 +271,7 @@ app.use('/api/v1/campus-chapters', require('./routes/campusChapters'));
 app.use('/api/v1/environmental-lessons', require('./routes/environmentalLessons'));
 app.use('/api/v1/eco-points', require('./routes/ecoPoints'));
 app.use('/api/v1/impact', require('./routes/impact'));
+app.use('/api/v1/trees', require('./routes/treeVerification'));
 app.use('/api/v1/habits', require('./routes/habits'));
 app.use('/api/v1/missions', require('./routes/missions'));
 

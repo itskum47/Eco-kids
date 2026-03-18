@@ -10,6 +10,8 @@ const Notification = require('../models/Notification');
 const ActivitySubmission = require('../models/ActivitySubmission');
 const { gamificationQueue } = require('../queues/gamificationQueue');
 
+const APPROVED_ACTIVITY_STATUSES = ['teacher_approved', 'approved'];
+
 class GamificationService {
   // Badge Management
   async awardBadge(userId, badgeId, context = {}) {
@@ -526,7 +528,7 @@ class GamificationService {
 
   async evaluateBadgesForUser(userId) {
     const user = await User.findById(userId)
-      .select('gamification school')
+      .select('gamification profile environmentalImpact progress')
       .lean();
 
     if (!user) return;
@@ -544,6 +546,7 @@ class GamificationService {
           $push: {
             'gamification.badges': {
               badgeId: badge._id,
+              name: badge.name,
               earnedAt: new Date(),
               idempotencyKey: `badge_${badge._id}_${userId}`
             }
@@ -553,10 +556,10 @@ class GamificationService {
 
         // Create in-app notification
         await Notification.create({
-          user: userId,
-          type: 'badge_unlocked',
-          title: `🎖️ Badge Unlocked: ${badge.name}!`,
-          body: badge.description,
+          userId,
+          type: 'badge',
+          title: `Badge Unlocked: ${badge.name}`,
+          message: badge.description,
           data: { badgeId: badge._id, rarity: badge.rarity }
         });
       }
@@ -566,33 +569,148 @@ class GamificationService {
   }
 
   async checkBadgeCondition(user, badge) {
-    switch (badge.triggerType) {
-      case 'points_threshold':
-        return (user.gamification?.ecoPoints || 0) >= badge.threshold;
+    const criteria = badge.criteria || {};
+    const type = criteria.type;
+    const value = Number(criteria.value || 0);
 
-      case 'activity_count':
-        const count = await ActivitySubmission.countDocuments({
-          user: user._id,
-          status: 'approved',
-          activityType: badge.activityType || { $exists: true }
-        });
-        return count >= badge.threshold;
-
-      case 'streak_days':
-        return (user.gamification?.currentStreak || 0) >= badge.threshold;
-
-      case 'quiz_accuracy':
-        const attempts = await Quiz.find({ 'attempts.user': user._id }).lean();
-        if (!attempts.length) return false;
-        // Approximation since the structure differs slightly
-        return false;
-
-      case 'level_reached':
-        return (user.gamification?.level || 1) >= badge.threshold;
-
-      default:
-        return false;
+    if (type === 'points') {
+      return (user.gamification?.ecoPoints || 0) >= value;
     }
+
+    if (type === 'streak') {
+      return (user.gamification?.streak?.longest || 0) >= value;
+    }
+
+    if (type === 'quizzes') {
+      return (user.progress?.quizzesTaken?.length || 0) >= value;
+    }
+
+    if (type === 'games') {
+      return (user.progress?.gamesPlayed?.length || 0) >= value;
+    }
+
+    if (type === 'experiments') {
+      return (user.progress?.experimentsCompleted?.length || 0) >= value;
+    }
+
+    if (type === 'water_saved') {
+      return (user.environmentalImpact?.waterSaved || 0) >= value;
+    }
+
+    if (type === 'plastic_reduced') {
+      return (user.environmentalImpact?.plasticReduced || 0) >= value;
+    }
+
+    if (type === 'trees_planted') {
+      return (user.environmentalImpact?.treesPlanted || 0) >= value;
+    }
+
+    if (type === 'quiz_mastery') {
+      const quizzes = user.progress?.quizzesTaken || [];
+      if (quizzes.length < value) return false;
+      const average = quizzes.reduce((sum, q) => sum + Number(q.score || 0), 0) / quizzes.length;
+      return average >= Number(criteria.minAverageScore || 0);
+    }
+
+    if (type === 'activities_count' || type === 'cleanup_events') {
+      const count = await this.countApprovedActivities(user._id, criteria);
+      return count >= value;
+    }
+
+    if (type === 'active_days') {
+      const activeDays = await this.countActiveDays(user._id, Number(criteria.windowDays || value));
+      return activeDays >= value;
+    }
+
+    if (type === 'seasonal_activity') {
+      const count = await this.countSeasonalActivities(user._id, criteria);
+      return count >= value;
+    }
+
+    if (type === 'class_rank') {
+      const rank = await this.getClassRank(user);
+      return rank > 0 && rank <= value;
+    }
+
+    return false;
+  }
+
+  async countApprovedActivities(userId, criteria = {}) {
+    const query = {
+      user: userId,
+      status: { $in: APPROVED_ACTIVITY_STATUSES }
+    };
+
+    if (Array.isArray(criteria.activityTypes) && criteria.activityTypes.length > 0) {
+      query.activityType = { $in: criteria.activityTypes };
+    }
+
+    if (criteria.windowDays) {
+      const since = new Date(Date.now() - Number(criteria.windowDays) * 24 * 60 * 60 * 1000);
+      query.createdAt = { $gte: since };
+    }
+
+    return ActivitySubmission.countDocuments(query);
+  }
+
+  async countActiveDays(userId, windowDays) {
+    const since = new Date(Date.now() - Number(windowDays || 7) * 24 * 60 * 60 * 1000);
+    const rows = await ActivitySubmission.aggregate([
+      {
+        $match: {
+          user: userId,
+          status: { $in: APPROVED_ACTIVITY_STATUSES },
+          createdAt: { $gte: since }
+        }
+      },
+      {
+        $project: {
+          dateOnly: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+          }
+        }
+      },
+      { $group: { _id: '$dateOnly' } },
+      { $count: 'total' }
+    ]);
+
+    return rows[0]?.total || 0;
+  }
+
+  async countSeasonalActivities(userId, criteria = {}) {
+    const query = {
+      user: userId,
+      status: { $in: APPROVED_ACTIVITY_STATUSES }
+    };
+
+    if (Array.isArray(criteria.activityTypes) && criteria.activityTypes.length > 0) {
+      query.activityType = { $in: criteria.activityTypes };
+    }
+
+    const docs = await ActivitySubmission.find(query).select('createdAt').lean();
+    const months = new Set((criteria.seasonMonths || []).map(Number));
+    if (!months.size) return 0;
+
+    return docs.filter((doc) => months.has(new Date(doc.createdAt).getUTCMonth() + 1)).length;
+  }
+
+  async getClassRank(user) {
+    const schoolId = user.profile?.schoolId;
+    const grade = String(user.profile?.grade || '').trim();
+    if (!schoolId || !grade) return -1;
+
+    const classmates = await User.find({
+      role: 'student',
+      'profile.schoolId': schoolId,
+      'profile.grade': grade,
+      isActive: true
+    })
+      .select('_id gamification.ecoPoints')
+      .sort({ 'gamification.ecoPoints': -1, _id: 1 })
+      .lean();
+
+    const idx = classmates.findIndex((student) => String(student._id) === String(user._id));
+    return idx === -1 ? -1 : idx + 1;
   }
 }
 

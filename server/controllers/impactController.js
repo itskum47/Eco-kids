@@ -5,8 +5,112 @@
 
 const User = require('../models/User');
 const ActivitySubmission = require('../models/ActivitySubmission');
+const ImpactDailyAction = require('../models/ImpactDailyAction');
+const Notification = require('../models/Notification');
+const mongoose = require('mongoose');
 const asyncHandler = require('../middleware/async');
 const { calculateEquivalents } = require('../utils/impactCalculator');
+
+const QUICK_ACTION_LIBRARY = {
+  'shower-5min': {
+    label: 'I took a 5-min shower',
+    impact: { waterSaved: 10, co2Prevented: 0.5 }
+  },
+  'segregated-waste': {
+    label: 'I segregated waste today',
+    impact: { plasticReduced: 0.5, co2Prevented: 0.25 }
+  },
+  'turned-off-lights': {
+    label: 'I turned off lights',
+    impact: { energySaved: 0.2, co2Prevented: 0.14 }
+  },
+  'bus-instead-of-car': {
+    label: 'I used bus instead of car',
+    impact: { co2Prevented: 2 }
+  },
+  'planted-something': {
+    label: 'I planted something',
+    impact: { treesPlanted: 1, co2Prevented: 20 }
+  }
+};
+
+const MS_IN_DAY = 24 * 60 * 60 * 1000;
+
+function parsePeriod(period = 'month') {
+  const now = new Date();
+  const map = {
+    week: 7,
+    month: 30,
+    quarter: 90,
+    year: 365,
+    'all-time': null
+  };
+  const days = map[period] !== undefined ? map[period] : 30;
+  if (days === null) return null;
+  return new Date(now.getTime() - days * MS_IN_DAY);
+}
+
+function normalizeImpact(impact = {}) {
+  return {
+    co2Prevented: Number(impact.co2Prevented || 0),
+    waterSaved: Number(impact.waterSaved || 0),
+    plasticReduced: Number(impact.plasticReduced || 0),
+    energySaved: Number(impact.energySaved || 0),
+    treesPlanted: Number(impact.treesPlanted || 0)
+  };
+}
+
+async function aggregateImpactForUser(userId, period = 'month') {
+  const normalizedUserId = mongoose.Types.ObjectId.isValid(userId)
+    ? new mongoose.Types.ObjectId(userId)
+    : userId;
+  const since = parsePeriod(period);
+  const match = { userId: normalizedUserId };
+  if (since) {
+    match.actionDate = { $gte: since };
+  }
+
+  const rows = await ImpactDailyAction.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: null,
+        co2Prevented: { $sum: '$impact.co2Prevented' },
+        waterSaved: { $sum: '$impact.waterSaved' },
+        plasticReduced: { $sum: '$impact.plasticReduced' },
+        energySaved: { $sum: '$impact.energySaved' },
+        treesPlanted: { $sum: '$impact.treesPlanted' },
+        actionsCount: { $sum: 1 }
+      }
+    }
+  ]);
+
+  return rows[0] || {
+    co2Prevented: 0,
+    waterSaved: 0,
+    plasticReduced: 0,
+    energySaved: 0,
+    treesPlanted: 0,
+    actionsCount: 0
+  };
+}
+
+function calculateMonthlyDelta(baseline = {}, current = {}) {
+  const baseCO2 = Number(baseline.co2 || 0);
+  const currentCO2 = Number(current.co2Prevented || 0);
+  const deltaCO2 = baseCO2 - currentCO2;
+  const percentChange = baseCO2 > 0 ? (deltaCO2 / baseCO2) * 100 : 0;
+  const equivalentTrees = deltaCO2 / 20;
+
+  return {
+    deltaCO2,
+    percentChange,
+    equivalentTrees,
+    waterDelta: Number(baseline.water || 0) - Number(current.waterSaved || 0),
+    plasticDelta: Number(baseline.plastic || 0) - Number(current.plasticReduced || 0),
+    energyDelta: Number(baseline.energy || 0) - Number(current.energySaved || 0)
+  };
+}
 
 exports.getImpactStats = asyncHandler(async (req, res) => {
   const [submissionAgg, userAgg] = await Promise.all([
@@ -419,4 +523,262 @@ exports.getUserImpactHistory = asyncHandler(async (req, res) => {
       chartData
     }
   });
+});
+
+/**
+ * @desc    Log a quick daily impact action
+ * @route   POST /api/v1/impact/daily-action
+ * @access  Private
+ */
+exports.logDailyImpactAction = asyncHandler(async (req, res) => {
+  const { actionType, date, value, customImpact } = req.body;
+
+  if (!actionType) {
+    return res.status(400).json({
+      success: false,
+      message: 'actionType is required'
+    });
+  }
+
+  const preset = QUICK_ACTION_LIBRARY[actionType];
+  const computedImpact = preset
+    ? normalizeImpact(preset.impact)
+    : normalizeImpact(customImpact || {});
+
+  if (Number(value || 0) > 0) {
+    computedImpact.co2Prevented += Number(value);
+  }
+
+  const action = await ImpactDailyAction.create({
+    userId: req.user.id,
+    actionType,
+    actionDate: date ? new Date(date) : new Date(),
+    impact: computedImpact,
+    metadata: {
+      label: preset?.label || 'Custom action',
+      source: preset ? 'quick-action' : 'custom-action',
+      customValue: Number(value || 0)
+    }
+  });
+
+  await User.findByIdAndUpdate(req.user.id, {
+    $inc: {
+      'environmentalImpact.co2Prevented': computedImpact.co2Prevented,
+      'environmentalImpact.waterSaved': computedImpact.waterSaved,
+      'environmentalImpact.plasticReduced': computedImpact.plasticReduced,
+      'environmentalImpact.energySaved': computedImpact.energySaved,
+      'environmentalImpact.treesPlanted': computedImpact.treesPlanted,
+      'environmentalImpact.activitiesCompleted': 1
+    },
+    $set: { 'environmentalImpact.lastImpactUpdate': new Date() }
+  });
+
+  const monthlyMetrics = await aggregateImpactForUser(req.user.id, 'month');
+  const user = await User.findById(req.user.id).select('impactBaseline');
+  const delta = calculateMonthlyDelta(user?.impactBaseline || {}, monthlyMetrics);
+
+  if (delta.percentChange >= 10) {
+    await Notification.create({
+      userId: req.user.id,
+      type: 'system',
+      title: 'Monthly Eco Milestone',
+      message: `You reduced CO2 by ${delta.percentChange.toFixed(1)}% this month. Keep going!`,
+      data: { metric: 'co2', percentChange: delta.percentChange }
+    }).catch(() => {});
+  }
+
+  res.status(201).json({
+    success: true,
+    data: {
+      action,
+      impact: computedImpact,
+      monthlyMetrics,
+      message: `Great! You saved ${computedImpact.co2Prevented.toFixed(2)} kg CO2 today!`
+    }
+  });
+});
+
+/**
+ * @desc    Get personal impact metrics by period
+ * @route   GET /api/v1/impact/me/metrics
+ * @access  Private
+ */
+exports.getMyImpactMetrics = asyncHandler(async (req, res) => {
+  const period = req.query.period || 'month';
+  const metrics = await aggregateImpactForUser(req.user.id, period);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      period,
+      co2: metrics.co2Prevented,
+      water: metrics.waterSaved,
+      plastic: metrics.plasticReduced,
+      energy: metrics.energySaved,
+      trees: metrics.treesPlanted,
+      actionsCount: metrics.actionsCount
+    }
+  });
+});
+
+/**
+ * @desc    Get impact baseline
+ * @route   GET /api/v1/impact/baseline
+ * @access  Private
+ */
+exports.getImpactBaseline = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user.id).select('impactBaseline');
+  res.status(200).json({
+    success: true,
+    data: user?.impactBaseline?.createdAt ? user.impactBaseline : null
+  });
+});
+
+/**
+ * @desc    Set or update impact baseline
+ * @route   POST /api/v1/impact/baseline
+ * @access  Private
+ */
+exports.setImpactBaseline = asyncHandler(async (req, res) => {
+  const {
+    co2,
+    water,
+    plastic,
+    energy,
+    trees,
+    showerDuration,
+    transportMode,
+    meatDaysPerWeek,
+    waterUsagePerDay
+  } = req.body;
+
+  let computedCO2 = Number(co2 || 0);
+  if (!computedCO2) {
+    const shower = Number(showerDuration || 0) * 1.5 * 0.08;
+    const transportFactor = transportMode === 'car' ? 0.4 : transportMode === 'bus' ? 0.05 : 0.01;
+    const transport = 10 * transportFactor;
+    const meat = Number(meatDaysPerWeek || 0) * 3;
+    const waterFootprint = Number(waterUsagePerDay || 0) * 0.001;
+    computedCO2 = shower + transport + meat + waterFootprint;
+  }
+
+  const now = new Date();
+  const user = await User.findByIdAndUpdate(
+    req.user.id,
+    {
+      $set: {
+        impactBaseline: {
+          co2: computedCO2,
+          water: Number(water || waterUsagePerDay || 0),
+          plastic: Number(plastic || 0),
+          energy: Number(energy || 0),
+          trees: Number(trees || 0),
+          sourceSurvey: {
+            showerDuration: Number(showerDuration || 0),
+            transportMode,
+            meatDaysPerWeek: Number(meatDaysPerWeek || 0),
+            waterUsagePerDay: Number(waterUsagePerDay || 0)
+          },
+          createdAt: now,
+          updatedAt: now
+        }
+      }
+    },
+    { new: true, select: 'impactBaseline' }
+  );
+
+  res.status(200).json({ success: true, data: user.impactBaseline });
+});
+
+/**
+ * @desc    Get baseline vs current comparison
+ * @route   GET /api/v1/impact/comparison
+ * @access  Private
+ */
+exports.getImpactComparison = asyncHandler(async (req, res) => {
+  const period = req.query.period || 'month';
+  const [user, current] = await Promise.all([
+    User.findById(req.user.id).select('impactBaseline'),
+    aggregateImpactForUser(req.user.id, period)
+  ]);
+
+  const baseline = user?.impactBaseline || null;
+  const delta = calculateMonthlyDelta(baseline || {}, current);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      period,
+      baseline,
+      current: {
+        co2: current.co2Prevented,
+        water: current.waterSaved,
+        plastic: current.plasticReduced,
+        energy: current.energySaved,
+        trees: current.treesPlanted
+      },
+      delta
+    }
+  });
+});
+
+/**
+ * @desc    Get monthly trend for charts
+ * @route   GET /api/v1/impact/trend
+ * @access  Private
+ */
+exports.getImpactTrend = asyncHandler(async (req, res) => {
+  const months = Math.max(3, Math.min(Number(req.query.months || 6), 24));
+  const normalizedUserId = mongoose.Types.ObjectId.isValid(req.user.id)
+    ? new mongoose.Types.ObjectId(req.user.id)
+    : req.user.id;
+  const since = new Date();
+  since.setUTCMonth(since.getUTCMonth() - (months - 1));
+  since.setUTCDate(1);
+  since.setUTCHours(0, 0, 0, 0);
+
+  const trendRows = await ImpactDailyAction.aggregate([
+    {
+      $match: {
+        userId: normalizedUserId,
+        actionDate: { $gte: since }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          year: { $year: '$actionDate' },
+          month: { $month: '$actionDate' }
+        },
+        co2: { $sum: '$impact.co2Prevented' },
+        water: { $sum: '$impact.waterSaved' },
+        plastic: { $sum: '$impact.plasticReduced' },
+        energy: { $sum: '$impact.energySaved' },
+        trees: { $sum: '$impact.treesPlanted' }
+      }
+    },
+    {
+      $project: {
+        _id: 0,
+        year: '$_id.year',
+        month: '$_id.month',
+        co2: 1,
+        water: 1,
+        plastic: 1,
+        energy: 1,
+        trees: 1
+      }
+    },
+    { $sort: { year: 1, month: 1 } }
+  ]);
+
+  const baseline = await User.findById(req.user.id).select('impactBaseline.co2').lean();
+  const baselineCO2 = Number(baseline?.impactBaseline?.co2 || 0);
+  const data = trendRows.map((row) => ({
+    ...row,
+    label: `${String(row.month).padStart(2, '0')}/${row.year}`,
+    baselineCo2: baselineCO2
+  }));
+
+  res.status(200).json({ success: true, data });
 });

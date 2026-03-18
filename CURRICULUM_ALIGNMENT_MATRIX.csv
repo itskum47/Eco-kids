@@ -1,0 +1,39 @@
+lessonId,lessonName,zone,cbseClass,ncertChapter,icseTopic,stateBoard
+himalayan-01,Alpine Ecosystems,Himalayan,"9|10",Biology-Ch3,Ecology-Unit3,Maharashtra-Std10
+himalayan-02,Water Cycle in Mountains,Himalayan,"8|9",Geography-Ch2,Water-Resources,Karnataka-Std9
+himalayan-03,Landslide Risk and Prevention,Himalayan,"9|10",Disaster-Management-Ch4,Earth-Processes,Uttarakhand-Std10
+himalayan-04,Tourism Impact on Mountains,Himalayan,"9|10",Geography-Ch6,Human-Environment,Himachal-Std10
+himalayan-05,Medicinal Plants of Himalayas,Himalayan,"8|9",Biology-Ch7,Plant-Science,Sikkim-Std9
+himalayan-06,Mountain Conservation Efforts,Himalayan,"9|10",Civics-Ch5,Conservation-Policy,Delhi-Std10
+himalayan-07,Climate Change in Himalayas,Himalayan,"10|11",Science-Ch15,Climate-Science,JammuKashmir-Std10
+himalayan-08,Community Action High Altitude,Himalayan,"8|9",Work-Education,Project-Work,Uttarakhand-Std9
+coastal-01,Marine Ecosystems,Coastal,"8|9",Biology-Ch4,Marine-Life,TamilNadu-Std9
+coastal-02,Coral Reefs and Biodiversity,Coastal,"9|10",Biology-Ch8,Biodiversity,Kerala-Std10
+coastal-03,Mangrove Forests,Coastal,"8|9",Geography-Ch5,Coastal-Ecology,WestBengal-Std9
+coastal-04,Marine Plastic Pollution,Coastal,"8|10",Science-Ch16,Pollution-Control,Goa-Std10
+coastal-05,Fishing and Overharvesting,Coastal,"9|10",Economics-Ch3,Sustainable-Fisheries,Odisha-Std10
+coastal-06,Coastal Erosion and Climate,Coastal,"9|10",Geography-Ch7,Geomorphology,AndhraPradesh-Std10
+coastal-07,Beach Cleanup Action,Coastal,"6|8",SUPW-Activity,Community-Service,Gujarat-Std8
+coastal-08,Ocean Conservation Projects,Coastal,"9|11",Science-Project,Applied-Science,Maharashtra-Std11
+desert-01,Desert Ecosystems,Desert,"8|9",Geography-Ch3,Biome-Studies,Rajasthan-Std9
+desert-02,Water Scarcity and Management,Desert,"8|10",Science-Ch12,Water-Management,Rajasthan-Std10
+desert-03,Desertification Causes and Solutions,Desert,"9|10",Geography-Ch8,Land-Degradation,Gujarat-Std10
+desert-04,Renewable Energy in Deserts,Desert,"9|11",Physics-Energy,Energy-Systems,Rajasthan-Std11
+desert-05,Desert Agriculture,Desert,"8|10",Geography-Agriculture,Agricultural-Practices,Haryana-Std10
+desert-06,Wildlife Adaptation,Desert,"8|9",Biology-Adaptation,Zoology-Unit2,Rajasthan-Std9
+desert-07,Community Solutions Arid Regions,Desert,"8|10",Civics-LocalGov,Social-Action,Rajasthan-Std10
+forest-01,Forest Types and Biodiversity,Forest,"8|9",Biology-Ch5,Forest-Ecology,MadhyaPradesh-Std9
+forest-02,Deforestation and Impact,Forest,"9|10",Science-Ch14,Conservation-Biology,Jharkhand-Std10
+forest-03,Wildlife Habitats,Forest,"8|9",Biology-Ch9,Habitat-Studies,Chhattisgarh-Std9
+forest-04,Forest Restoration,Forest,"9|10",Geography-Ch4,Restoration-Ecology,Odisha-Std10
+forest-05,Indigenous Knowledge Systems,Forest,"8|10",SocialScience-Ch6,Traditional-Knowledge,Assam-Std10
+forest-06,Carbon Sequestration,Forest,"10|11",Chemistry-CarbonCycle,Climate-Science,Delhi-Std11
+forest-07,Community Forests,Forest,"8|10",Civics-Ch7,Commons-Governance,Maharashtra-Std10
+forest-08,Reforestation Action Lab,Forest,"7|9",SUPW-Project,Practical-Work,MadhyaPradesh-Std9
+urban-01,Urban Heat Islands,Urban,"8|10",Geography-Urban,Urban-Climate,Delhi-Std10
+urban-02,Air Quality and Pollution,Urban,"8|10",Science-Ch13,Environmental-Chemistry,Maharashtra-Std10
+urban-03,Waste Management in Cities,Urban,"7|10",Science-Ch18,Waste-Systems,Karnataka-Std9
+urban-04,Green Spaces and Parks,Urban,"6|8",EVS-UrbanNature,City-Ecology,Telangana-Std8
+urban-05,Sustainable Transport,Urban,"8|10",Geography-Transport,Urban-Planning,Delhi-Std9
+urban-06,Water in Cities,Urban,"8|10",Geography-Water,Urban-Water,CBSE-Std9
+urban-07,Urban Gardening Action,Urban,"6|9",SUPW-Horticulture,Practical-Biology,TamilNadu-Std8

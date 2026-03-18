@@ -12,6 +12,7 @@
     "seed": "node seed/seedData.js",
     "seed:demo": "node scripts/seed-demo-users.js",
     "seed:quizzes": "node scripts/seed-quizzes.js",
+    "seed:trees": "node scripts/seedTreeSpecies.js",
     "seed:all": "node scripts/seed-demo-users.js && node scripts/seed-quizzes.js && node scripts/seed-conference-demo.js",
     "test": "jest",
     "backup": "node scripts/backup.js",

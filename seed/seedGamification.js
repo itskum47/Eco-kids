@@ -1,182 +1,323 @@
 const { Badge, Level, CertificateTemplate } = require('../models/Gamification');
 
 const badges = [
-  // Achievement Badges
+  // Water Conservation (3)
   {
-    name: 'First Steps',
-    description: 'Complete your first quiz',
-    icon: '🌱',
-    color: '#10B981',
+    name: 'Droplet Saver',
+    description: 'Save at least 100 liters of water in total',
+    icon: '💧',
+    color: '#0EA5E9',
     category: 'achievement',
-    criteria: {
-      type: 'quizzes',
-      value: 1,
-      timeframe: 'all-time'
-    },
+    criteria: { type: 'water_saved', value: 100, timeframe: 'all-time' },
     rarity: 'common',
+    points: 25
+  },
+  {
+    name: 'Drought Fighter',
+    description: 'Save at least 500 liters of water in total',
+    icon: '💦',
+    color: '#0284C7',
+    category: 'achievement',
+    criteria: { type: 'water_saved', value: 500, timeframe: 'all-time' },
+    rarity: 'rare',
     points: 50
   },
   {
-    name: 'Quiz Master',
-    description: 'Complete 10 quizzes',
-    icon: '🧠',
-    color: '#3B82F6',
+    name: 'Ocean Guardian',
+    description: 'Save at least 1000 liters of water in total',
+    icon: '🌊',
+    color: '#0369A1',
     category: 'achievement',
-    criteria: {
-      type: 'quizzes',
-      value: 10,
-      timeframe: 'all-time'
-    },
-    rarity: 'rare',
-    points: 200
+    criteria: { type: 'water_saved', value: 1000, timeframe: 'all-time' },
+    rarity: 'epic',
+    points: 75
   },
+
+  // Energy Pioneer (3)
   {
-    name: 'Game Explorer',
-    description: 'Play 5 different games',
-    icon: '🎮',
-    color: '#8B5CF6',
-    category: 'achievement',
+    name: 'Light Switch Pro',
+    description: 'Log 10 energy-saving activities in the last 30 days',
+    icon: '💡',
+    color: '#F59E0B',
+    category: 'milestone',
     criteria: {
-      type: 'games',
-      value: 5,
-      timeframe: 'all-time'
+      type: 'activities_count',
+      value: 10,
+      activityTypes: ['energy-saving'],
+      windowDays: 30,
+      timeframe: 'monthly'
     },
     rarity: 'common',
+    points: 30
+  },
+  {
+    name: 'Renewable Advocate',
+    description: 'Log 30 energy-saving activities in the last 90 days',
+    icon: '🔋',
+    color: '#D97706',
+    category: 'milestone',
+    criteria: {
+      type: 'activities_count',
+      value: 30,
+      activityTypes: ['energy-saving'],
+      windowDays: 90,
+      timeframe: 'all-time'
+    },
+    rarity: 'rare',
+    points: 60
+  },
+  {
+    name: 'Carbon Neutral',
+    description: 'Log 50 energy-saving activities in the last 180 days',
+    icon: '⚡',
+    color: '#B45309',
+    category: 'milestone',
+    criteria: {
+      type: 'activities_count',
+      value: 50,
+      activityTypes: ['energy-saving'],
+      windowDays: 180,
+      timeframe: 'all-time'
+    },
+    rarity: 'legendary',
     points: 100
   },
+
+  // Waste Master (3)
   {
-    name: 'Eco Scientist',
-    description: 'Complete 3 experiments',
-    icon: '🧪',
-    color: '#F59E0B',
+    name: 'Sort Starter',
+    description: 'Reduce or recycle at least 5 kg of plastic/waste',
+    icon: '🗂️',
+    color: '#10B981',
     category: 'achievement',
-    criteria: {
-      type: 'experiments',
-      value: 3,
-      timeframe: 'all-time'
-    },
+    criteria: { type: 'plastic_reduced', value: 5, timeframe: 'all-time' },
+    rarity: 'common',
+    points: 25
+  },
+  {
+    name: 'Recycle Warrior',
+    description: 'Reduce or recycle at least 25 kg of plastic/waste',
+    icon: '♻️',
+    color: '#059669',
+    category: 'achievement',
+    criteria: { type: 'plastic_reduced', value: 25, timeframe: 'all-time' },
     rarity: 'rare',
-    points: 150
-  },
-  
-  // Milestone Badges
-  {
-    name: 'EcoPoints Champion',
-    description: 'Earn 1000 EcoPoints',
-    icon: '⭐',
-    color: '#F59E0B',
-    category: 'milestone',
-    criteria: {
-      type: 'points',
-      value: 1000,
-      timeframe: 'all-time'
-    },
-    rarity: 'epic',
-    points: 250
+    points: 50
   },
   {
-    name: 'EcoPoints Legend',
-    description: 'Earn 5000 EcoPoints',
-    icon: '💎',
-    color: '#6366F1',
-    category: 'milestone',
-    criteria: {
-      type: 'points',
-      value: 5000,
-      timeframe: 'all-time'
-    },
-    rarity: 'legendary',
-    points: 500
-  },
-  
-  // Streak Badges
-  {
-    name: 'Consistent Learner',
-    description: 'Maintain a 7-day learning streak',
-    icon: '🔥',
-    color: '#EF4444',
+    name: 'Zero Waste Champion',
+    description: 'Reduce or recycle at least 100 kg of plastic/waste',
+    icon: '🧹',
+    color: '#047857',
     category: 'achievement',
-    criteria: {
-      type: 'streak',
-      value: 7,
-      timeframe: 'all-time'
-    },
+    criteria: { type: 'plastic_reduced', value: 100, timeframe: 'all-time' },
+    rarity: 'epic',
+    points: 75
+  },
+
+  // Biodiversity (3)
+  {
+    name: 'Seed Planter',
+    description: 'Plant 5 trees',
+    icon: '🌱',
+    color: '#22C55E',
+    category: 'achievement',
+    criteria: { type: 'trees_planted', value: 5, timeframe: 'all-time' },
+    rarity: 'common',
+    points: 35
+  },
+  {
+    name: 'Forest Builder',
+    description: 'Plant 25 trees',
+    icon: '🌳',
+    color: '#16A34A',
+    category: 'achievement',
+    criteria: { type: 'trees_planted', value: 25, timeframe: 'all-time' },
     rarity: 'rare',
-    points: 200
+    points: 60
   },
   {
-    name: 'Dedication Master',
-    description: 'Maintain a 30-day learning streak',
-    icon: '🏆',
-    color: '#DC2626',
+    name: 'Green Guardian',
+    description: 'Plant 100 trees',
+    icon: '🌲',
+    color: '#15803D',
     category: 'achievement',
-    criteria: {
-      type: 'streak',
-      value: 30,
-      timeframe: 'all-time'
-    },
+    criteria: { type: 'trees_planted', value: 100, timeframe: 'all-time' },
     rarity: 'legendary',
-    points: 1000
+    points: 100
   },
-  
-  // Special Badges
+
+  // Community Leader (2)
   {
-    name: 'Early Bird',
-    description: 'Join EcoKids India in its first month',
-    icon: '🐦',
-    color: '#06B6D4',
-    category: 'special',
-    criteria: {
-      type: 'special',
-      value: 1,
-      timeframe: 'all-time'
-    },
-    rarity: 'epic',
-    points: 300
-  },
-  {
-    name: 'Weekend Warrior',
-    description: 'Complete activities on 4 consecutive weekends',
-    icon: '⚔️',
+    name: 'Cleanup Captain',
+    description: 'Complete 1 approved community cleanup activity',
+    icon: '🧤',
     color: '#7C3AED',
     category: 'special',
     criteria: {
-      type: 'special',
-      value: 4,
-      timeframe: 'monthly'
+      type: 'cleanup_events',
+      value: 1,
+      activityTypes: ['sutlej-cleanup'],
+      timeframe: 'all-time'
     },
     rarity: 'rare',
+    points: 40
+  },
+  {
+    name: 'Environmental Hero',
+    description: 'Complete 5 approved community cleanup activities',
+    icon: '🦸',
+    color: '#6D28D9',
+    category: 'special',
+    criteria: {
+      type: 'cleanup_events',
+      value: 5,
+      activityTypes: ['sutlej-cleanup'],
+      timeframe: 'all-time'
+    },
+    rarity: 'epic',
+    points: 80
+  },
+
+  // Knowledge Master (3)
+  {
+    name: 'Eco Scholar',
+    description: 'Complete 10 quizzes with average score at least 70%',
+    icon: '📘',
+    color: '#3B82F6',
+    category: 'milestone',
+    criteria: { type: 'quiz_mastery', value: 10, minAverageScore: 70, timeframe: 'all-time' },
+    rarity: 'common',
+    points: 20
+  },
+  {
+    name: 'Nature Expert',
+    description: 'Complete 50 quizzes with average score at least 75%',
+    icon: '🎓',
+    color: '#2563EB',
+    category: 'milestone',
+    criteria: { type: 'quiz_mastery', value: 50, minAverageScore: 75, timeframe: 'all-time' },
+    rarity: 'rare',
+    points: 50
+  },
+  {
+    name: 'Sustainability PhD',
+    description: 'Complete 100 quizzes with average score at least 80%',
+    icon: '🏅',
+    color: '#1D4ED8',
+    category: 'milestone',
+    criteria: { type: 'quiz_mastery', value: 100, minAverageScore: 80, timeframe: 'all-time' },
+    rarity: 'legendary',
+    points: 80
+  },
+
+  // Streak Medals (3)
+  {
+    name: 'Week Warrior',
+    description: 'Be active on 7 distinct days in the last 7 days',
+    icon: '🔥',
+    color: '#EF4444',
+    category: 'achievement',
+    criteria: { type: 'active_days', value: 7, windowDays: 7, timeframe: 'weekly' },
+    rarity: 'common',
+    points: 15
+  },
+  {
+    name: 'Month Maven',
+    description: 'Be active on 30 distinct days in the last 30 days',
+    icon: '📅',
+    color: '#DC2626',
+    category: 'achievement',
+    criteria: { type: 'active_days', value: 30, windowDays: 30, timeframe: 'monthly' },
+    rarity: 'rare',
+    points: 30
+  },
+  {
+    name: 'Year Champion',
+    description: 'Be active on at least 350 distinct days in the last 365 days',
+    icon: '🏆',
+    color: '#B91C1C',
+    category: 'milestone',
+    criteria: { type: 'active_days', value: 350, windowDays: 365, timeframe: 'all-time' },
+    rarity: 'legendary',
     points: 150
   },
-  
-  // Seasonal Badges
+
+  // Social Badges (2)
   {
-    name: 'Earth Day Champion',
-    description: 'Complete special Earth Day activities',
-    icon: '🌍',
-    color: '#059669',
-    category: 'seasonal',
+    name: 'Friend Finder',
+    description: 'Complete 10 approved community activities (cleanup or nature walk)',
+    icon: '🤝',
+    color: '#0EA5E9',
+    category: 'special',
     criteria: {
-      type: 'special',
-      value: 1,
+      type: 'activities_count',
+      value: 10,
+      activityTypes: ['sutlej-cleanup', 'nature-walk'],
       timeframe: 'all-time'
     },
-    rarity: 'epic',
-    points: 400
+    rarity: 'common',
+    points: 10
   },
   {
-    name: 'World Environment Day Hero',
-    description: 'Participate in World Environment Day events',
-    icon: '🌿',
-    color: '#16A34A',
+    name: 'Class Champion',
+    description: 'Reach top 3 rank in your class leaderboard by EcoPoints',
+    icon: '🥇',
+    color: '#F59E0B',
+    category: 'special',
+    criteria: { type: 'class_rank', value: 3, rankScope: 'class', timeframe: 'all-time' },
+    rarity: 'epic',
+    points: 25
+  },
+
+  // Seasonal Badges (3)
+  {
+    name: 'Climate Advocate',
+    description: 'Complete 5 climate actions in Apr-Jun',
+    icon: '🌍',
+    color: '#0F766E',
     category: 'seasonal',
     criteria: {
-      type: 'special',
-      value: 1,
+      type: 'seasonal_activity',
+      value: 5,
+      seasonMonths: [4, 5, 6],
+      activityTypes: ['air-quality-monitoring', 'energy-saving'],
       timeframe: 'all-time'
     },
-    rarity: 'epic',
-    points: 400
+    rarity: 'rare',
+    points: 20
+  },
+  {
+    name: 'Winter Warrior',
+    description: 'Complete 5 energy actions in Dec-Feb',
+    icon: '❄️',
+    color: '#1E40AF',
+    category: 'seasonal',
+    criteria: {
+      type: 'seasonal_activity',
+      value: 5,
+      seasonMonths: [12, 1, 2],
+      activityTypes: ['energy-saving'],
+      timeframe: 'all-time'
+    },
+    rarity: 'rare',
+    points: 20
+  },
+  {
+    name: 'Monsoon Guardian',
+    description: 'Complete 5 water actions in Jul-Sep',
+    icon: '🌧️',
+    color: '#1D4ED8',
+    category: 'seasonal',
+    criteria: {
+      type: 'seasonal_activity',
+      value: 5,
+      seasonMonths: [7, 8, 9],
+      activityTypes: ['water-conservation', 'groundwater-conservation'],
+      timeframe: 'all-time'
+    },
+    rarity: 'rare',
+    points: 20
   }
 ];
 
