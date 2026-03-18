@@ -13,6 +13,7 @@ const {
   refreshToken,
   revokeRefreshToken,
   sendOtp,
+  resendOtp,
   verifyOtp,
   registerStudent,
   qrLoginByToken
@@ -36,6 +37,7 @@ router.post('/register', loginLimiter, validateUserRegistration, register);
 router.post('/register-student', loginLimiter, registerStudent);
 router.post('/login', loginLimiter, checkAccountLockout, validateUserLogin, login);
 router.post('/send-otp', loginLimiter, sendOtp);
+router.post('/resend-otp', loginLimiter, resendOtp);
 router.post('/verify-otp', loginLimiter, verifyOtp);
 router.post('/qr-login', loginLimiter, qrLogin);  // QR code login (no email/phone needed)
 router.get('/qr-login', loginLimiter, qrLoginByToken);

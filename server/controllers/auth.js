@@ -609,6 +609,58 @@ exports.sendOtp = async (req, res, next) => {
   }
 };
 
+// @desc    Resend OTP for phone login
+// @route   POST /api/v1/auth/resend-otp
+// @access  Public
+exports.resendOtp = async (req, res, next) => {
+  try {
+    const phone = normalizePhone(req.body.phone);
+    if (!/^([6-9]\d{9})$/.test(phone)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid Indian mobile number' });
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { phone },
+        { phone: `+91${phone}` },
+        { parentPhone: phone },
+        { parentPhone: `+91${phone}` },
+        { 'profile.phone': phone },
+        { 'profile.phone': `+91${phone}` }
+      ]
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'No account found. Ask your school to register you.' });
+    }
+
+    const otp = generateOtp();
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`DEV RESEND OTP for ${phone}: ${otp}`);
+    }
+
+    await redisClient.set(`otp:${phone}`, otp, 'PX', OTP_EXPIRY_MS);
+    await redisClient.set(`otp_attempts:${phone}`, 0, 'PX', OTP_EXPIRY_MS);
+
+    await sendSms({
+      phone,
+      otp,
+      message: `Your EcoKids login OTP is ${otp}. Valid for 5 minutes. Do not share. - EcoKids India`
+    });
+
+    const maskedPhone = `${phone.slice(0, 2)}XXXXXX${phone.slice(-2)}`;
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP resent successfully',
+      maskedPhone
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Verify OTP and login
 // @route   POST /api/v1/auth/verify-otp
 // @access  Public

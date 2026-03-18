@@ -21,6 +21,7 @@ const Login = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
+  const [otpInfo, setOtpInfo] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
 
@@ -54,11 +55,29 @@ const Login = () => {
     if (!phoneData.phone) return;
     setOtpLoading(true);
     setOtpError('');
+    setOtpInfo('');
     try {
       await axios.post('/api/v1/auth/send-otp', { phone: phoneData.phone });
       setOtpSent(true);
+      setOtpInfo('OTP sent. Please check your phone.');
     } catch (err) {
       setOtpError(err?.response?.data?.message || 'Could not send OTP. Please check your phone number and try again.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    if (!phoneData.phone) return;
+    setOtpLoading(true);
+    setOtpError('');
+    setOtpInfo('');
+    try {
+      await axios.post('/api/v1/auth/resend-otp', { phone: phoneData.phone });
+      setOtpSent(true);
+      setOtpInfo('A new OTP has been sent to your phone.');
+    } catch (err) {
+      setOtpError(err?.response?.data?.message || 'Failed to resend OTP. Please try again.');
     } finally {
       setOtpLoading(false);
     }
@@ -68,6 +87,7 @@ const Login = () => {
     if (!phoneData.phone || !phoneData.otp) return;
     setOtpLoading(true);
     setOtpError('');
+    setOtpInfo('');
     try {
       const response = await axios.post('/api/v1/auth/verify-otp', {
         phone: phoneData.phone,
@@ -265,6 +285,12 @@ const Login = () => {
                 </div>
               )}
 
+                  {otpInfo && (
+                    <div className="text-emerald-700 text-sm bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
+                      {otpInfo}
+                    </div>
+                  )}
+
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-1.5">Phone Number</label>
                 <div className="relative">
@@ -305,15 +331,25 @@ const Login = () => {
                   {otpLoading ? 'Sending OTP...' : 'Send OTP'}
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={verifyOtp}
-                  disabled={otpLoading}
-                  className="w-full py-3.5 rounded-xl font-black text-white text-base shadow-md hover:shadow-lg transition-all disabled:opacity-60"
-                  style={{ background: otpLoading ? '#81c784' : 'linear-gradient(135deg, #2e7d32, #43a047)' }}
-                >
-                  {otpLoading ? 'Verifying...' : 'Verify OTP'}
-                </button>
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={verifyOtp}
+                    disabled={otpLoading}
+                    className="w-full py-3.5 rounded-xl font-black text-white text-base shadow-md hover:shadow-lg transition-all disabled:opacity-60"
+                    style={{ background: otpLoading ? '#81c784' : 'linear-gradient(135deg, #2e7d32, #43a047)' }}
+                  >
+                    {otpLoading ? 'Verifying...' : 'Verify OTP'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resendOtp}
+                    disabled={otpLoading}
+                    className="w-full py-2.5 rounded-xl font-semibold text-sm border border-green-200 text-green-700 hover:bg-green-50 transition-all disabled:opacity-60"
+                  >
+                    {otpLoading ? 'Please wait...' : 'Resend OTP'}
+                  </button>
+                </div>
               )}
             </div>
           ) : (
