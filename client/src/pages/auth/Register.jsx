@@ -15,7 +15,7 @@ import {
   FaCheckCircle,
   FaUserPlus
 } from 'react-icons/fa';
-import { register } from '../../store/slices/authSlice';
+import { clearError, register } from '../../store/slices/authSlice';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -44,8 +44,52 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [step, setStep] = useState(1);
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const hasPasswordStrength = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/.test(password);
+
+  const validateStep1 = () => {
+    const errors = {};
+
+    if (!formData.firstName.trim()) {
+      errors.firstName = 'First name is required';
+    }
+
+    if (!formData.lastName.trim()) {
+      errors.lastName = 'Last name is required';
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else if (!hasPasswordStrength(formData.password)) {
+      errors.password = 'Use 6+ chars with uppercase, lowercase, and number';
+    }
+
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = t('auth.passwordsDoNotMatch') || 'Passwords do not match';
+    }
+
+    return errors;
+  };
 
   const handleChange = (e) => {
+    if (error) {
+      dispatch(clearError());
+    }
+    if (fieldErrors[e.target.name]) {
+      setFieldErrors((prev) => ({ ...prev, [e.target.name]: null }));
+    }
+    if (e.target.name === 'password' && fieldErrors.confirmPassword) {
+      setFieldErrors((prev) => ({ ...prev, confirmPassword: null }));
+    }
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -54,21 +98,51 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) return;
 
-    const result = await dispatch(register(formData));
+    const errors = validateStep1();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setStep(1);
+      return;
+    }
+
+    setFieldErrors({});
+
+    const payload = {
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+      email: formData.email,
+      password: formData.password,
+      role: 'student',
+      profile: {
+        grade: formData.grade ? String(formData.grade) : undefined,
+        school: formData.school || undefined,
+        city: formData.city || undefined,
+        state: formData.state || undefined
+      }
+    };
+
+    const result = await dispatch(register(payload));
     if (result.type === 'auth/register/fulfilled') {
       const next = destinationForRole(result.payload?.user?.role);
       navigate(next);
     }
   };
 
-  const nextStep = () => { if (step < 2) setStep(step + 1); };
+  const nextStep = () => {
+    const errors = validateStep1();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+    setFieldErrors({});
+    if (step < 2) setStep(step + 1);
+  };
   const prevStep = () => { if (step > 1) setStep(step - 1); };
 
   const isStep1Valid = formData.firstName && formData.lastName && formData.email &&
     formData.password && formData.confirmPassword &&
-    formData.password === formData.confirmPassword;
+    formData.password === formData.confirmPassword &&
+    hasPasswordStrength(formData.password);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12" style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #e8f5e9 50%, #f1f8e9 100%)' }}>
@@ -138,15 +212,17 @@ const Register = () => {
                       <label className="block text-sm font-bold text-gray-700 mb-1">{t('auth.firstName') || 'First Name'}</label>
                       <div className="relative">
                         <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
-                        <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-800 text-sm font-medium focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all placeholder-gray-400" placeholder="Jane" required />
+                        <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl text-gray-800 text-sm font-medium focus:outline-none transition-all placeholder-gray-400 ${fieldErrors.firstName ? 'border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100' : 'border-gray-200 focus:border-green-400 focus:ring-2 focus:ring-green-100'}`} placeholder="Jane" required />
                       </div>
+                      {fieldErrors.firstName && <p className="text-red-500 text-xs mt-1.5 font-medium">{fieldErrors.firstName}</p>}
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1">{t('auth.lastName') || 'Last Name'}</label>
                       <div className="relative">
                         <FaUser className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
-                        <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-800 text-sm font-medium focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all placeholder-gray-400" placeholder="Doe" required />
+                        <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl text-gray-800 text-sm font-medium focus:outline-none transition-all placeholder-gray-400 ${fieldErrors.lastName ? 'border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100' : 'border-gray-200 focus:border-green-400 focus:ring-2 focus:ring-green-100'}`} placeholder="Doe" required />
                       </div>
+                      {fieldErrors.lastName && <p className="text-red-500 text-xs mt-1.5 font-medium">{fieldErrors.lastName}</p>}
                     </div>
                   </div>
 
@@ -154,19 +230,21 @@ const Register = () => {
                     <label className="block text-sm font-bold text-gray-700 mb-1">{t('auth.email') || 'Email Address'}</label>
                     <div className="relative">
                       <FaEnvelope className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
-                      <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-gray-800 text-sm font-medium focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all placeholder-gray-400" placeholder={t('auth.emailPlaceholder') || 'you@example.com'} required />
+                      <input type="email" name="email" value={formData.email} onChange={handleChange} className={`w-full pl-10 pr-4 py-3 border-2 rounded-xl text-gray-800 text-sm font-medium focus:outline-none transition-all placeholder-gray-400 ${fieldErrors.email ? 'border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100' : 'border-gray-200 focus:border-green-400 focus:ring-2 focus:ring-green-100'}`} placeholder={t('auth.emailPlaceholder') || 'you@example.com'} required />
                     </div>
+                    {fieldErrors.email && <p className="text-red-500 text-xs mt-1.5 font-medium">{fieldErrors.email}</p>}
                   </div>
 
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">{t('auth.password') || 'Password'}</label>
                     <div className="relative">
                       <FaLock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" />
-                      <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} className="w-full pl-10 pr-10 py-3 border-2 border-gray-200 rounded-xl text-gray-800 text-sm font-medium focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all placeholder-gray-400" placeholder="••••••••" required />
+                      <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} className={`w-full pl-10 pr-10 py-3 border-2 rounded-xl text-gray-800 text-sm font-medium focus:outline-none transition-all placeholder-gray-400 ${fieldErrors.password ? 'border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100' : 'border-gray-200 focus:border-green-400 focus:ring-2 focus:ring-green-100'}`} placeholder="••••••••" required />
                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-700" tabIndex="-1">
                         {showPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
                     </div>
+                    {fieldErrors.password && <p className="text-red-500 text-xs mt-1.5 font-medium">{fieldErrors.password}</p>}
                   </div>
 
                   <div>
@@ -178,8 +256,8 @@ const Register = () => {
                         {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                       </button>
                     </div>
-                    {formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword && (
-                      <p className="text-red-500 text-xs mt-1.5 font-medium">{t('auth.passwordsDoNotMatch') || 'Passwords do not match'}</p>
+                    {fieldErrors.confirmPassword && (
+                      <p className="text-red-500 text-xs mt-1.5 font-medium">{fieldErrors.confirmPassword}</p>
                     )}
                   </div>
 

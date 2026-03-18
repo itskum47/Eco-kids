@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash, FaMobileAlt } from 'react-icons/fa';
 import axios from 'axios';
-import { login } from '../../store/slices/authSlice';
+import { clearError, login } from '../../store/slices/authSlice';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -25,10 +25,18 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
 
+  const getApiError = (err, fallback) => {
+    return err?.response?.data?.message || err?.response?.data?.error || fallback;
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     setSessionExpired(params.get('session') === 'expired');
   }, [location.search]);
+
+  useEffect(() => {
+    dispatch(clearError());
+  }, [activeTab, dispatch]);
 
   const destinationForRole = (role) => {
     if (role === 'teacher') return '/teacher/dashboard';
@@ -40,6 +48,9 @@ const Login = () => {
   };
 
   const handleChange = (e) => {
+    if (error) {
+      dispatch(clearError());
+    }
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -61,7 +72,7 @@ const Login = () => {
       setOtpSent(true);
       setOtpInfo('OTP sent. Please check your phone.');
     } catch (err) {
-      setOtpError(err?.response?.data?.message || 'Could not send OTP. Please check your phone number and try again.');
+      setOtpError(getApiError(err, 'Could not send OTP. Please check your phone number and try again.'));
     } finally {
       setOtpLoading(false);
     }
@@ -77,7 +88,7 @@ const Login = () => {
       setOtpSent(true);
       setOtpInfo('A new OTP has been sent to your phone.');
     } catch (err) {
-      setOtpError(err?.response?.data?.message || 'Failed to resend OTP. Please try again.');
+      setOtpError(getApiError(err, 'Failed to resend OTP. Please try again.'));
     } finally {
       setOtpLoading(false);
     }
@@ -100,7 +111,7 @@ const Login = () => {
       }
       navigate(destinationForRole(role));
     } catch (err) {
-      setOtpError(err?.response?.data?.message || 'Invalid OTP');
+      setOtpError(getApiError(err, 'Invalid OTP'));
     } finally {
       setOtpLoading(false);
     }
@@ -158,7 +169,7 @@ const Login = () => {
           </AnimatePresence>
 
           <AnimatePresence>
-            {error && (
+            {activeTab === 'email' && error && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -167,7 +178,7 @@ const Login = () => {
                 style={{ background: '#fef2f2', border: '1px solid #fecaca' }}
               >
                 <span>⚠️</span>
-                <span>{t('errors.loginFailed') || 'Login failed. Please check your email and password.'}</span>
+                <span>{typeof error === 'string' ? error : (t('errors.loginFailed') || 'Login failed. Please check your email and password.')}</span>
               </motion.div>
             )}
           </AnimatePresence>

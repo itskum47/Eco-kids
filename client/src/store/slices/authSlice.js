@@ -10,7 +10,8 @@ export const register = createAsyncThunk(
       // Removed localStorage to rely on HttpOnly Cookie
       return { user: data.user };
     } catch (error) {
-      const message = error.response?.data?.message || error.message || 'Registration failed';
+      const firstValidationMessage = error.response?.data?.errors?.[0]?.message;
+      const message = firstValidationMessage || error.response?.data?.message || error.response?.data?.error || error.message || 'Registration failed';
       return rejectWithValue(message);
     }
   }

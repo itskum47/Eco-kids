@@ -258,7 +258,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/qr-login" element={<QRLogin />} />
                 <Route path="/qr-login-page" element={<QRLoginPage />} />
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><RoleRedirect /></ProtectedRoute>} />
                 <Route path="/role-redirect" element={<ProtectedRoute><RoleRedirect /></ProtectedRoute>} />
                 <Route path="/student-dashboard" element={<ProtectedRoute roles={['student']}><StudentDashboard /></ProtectedRoute>} />
                 <Route path="/student/profile" element={<ProtectedRoute roles={['student']}><StudentProfile /></ProtectedRoute>} />
