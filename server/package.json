@@ -21,9 +21,9 @@
     "restore:list": "node scripts/restore.js --list",
     "restore:latest": "node scripts/restore.js --latest",
     "monitor": "node scripts/monitoringScheduler.js",
-    "phase3:setup": "node scripts/setup-phase3.js",
-    "phase3:add-attrs": "node scripts/add-attributes.js",
-    "phase3:seed": "node scripts/seed-test-data.js"
+    "phase3:setup": "node ../scripts/setup-phase3.js",
+    "phase3:add-attrs": "node ../scripts/add-attributes.js",
+    "phase3:seed": "node ../scripts/seed-test-data.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.16.0",

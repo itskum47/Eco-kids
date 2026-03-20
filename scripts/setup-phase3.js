@@ -1,3 +1,6 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
+
 const AppwriteSetup = require('../server/setup/appwrite-setup');
 
 async function main() {

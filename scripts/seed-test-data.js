@@ -1,4 +1,7 @@
-const { ID } = require('appwrite');
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
+
+const { ID } = require('node-appwrite');
 const appwrite = require('../server/config/appwrite-client');
 const config = require('../server/config/appwrite-config');
 

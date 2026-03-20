@@ -1,3 +1,6 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
+
 const appwrite = require('../server/config/appwrite-client');
 const config = require('../server/config/appwrite-config');
 const schemas = require('../server/schemas/collections');

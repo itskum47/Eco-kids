@@ -1,6 +1,7 @@
-const { ID } = require('appwrite');
+const { ID } = require('node-appwrite');
 const appwrite = require('../config/appwrite-client');
 const config = require('../config/appwrite-config');
+const schemas = require('../schemas/collections');
 
 class AppwriteSetup {
   constructor() {
@@ -23,9 +24,9 @@ class AppwriteSetup {
       this.log.success.push('Database created');
       return database;
     } catch (error) {
-      if (error.code === 409) {
-        console.log('✓ Database already exists');
-        this.log.success.push('Database verified');
+      if (error.code === 409 || error.code === 400 || error.message.includes('already exists') || error.message.includes('maximum number')) {
+        console.log('✓ Database already exists or limit reached - continuing with collections');
+        this.log.success.push('Database verified/available');
         return { $id: this.config.databaseId };
       }
       console.error('✗ Database creation failed:', error.message);
@@ -72,28 +73,27 @@ class AppwriteSetup {
   }
 
   async createCollections() {
-    const definitions = this.getCollectionDefinitions();
-
     console.log('\nCreating collections...');
 
-    for (const [key, def] of Object.entries(definitions)) {
+    for (const [key, schema] of Object.entries(schemas)) {
       try {
+        const collectionId = schema.collectionId;
         await this.databases.createCollection(
           this.config.databaseId,
-          ID.unique(),
-          def.name,
+          collectionId,
+          collectionId,
           [],
           false
         );
-        console.log(`✓ Collection created: ${def.name}`);
-        this.log.success.push(`Collection: ${def.name}`);
+        console.log(`✓ Collection created: ${collectionId}`);
+        this.log.success.push(`Collection: ${collectionId}`);
       } catch (error) {
         if (error.code === 409) {
-          console.log(`✓ Collection exists: ${def.name}`);
-          this.log.success.push(`Collection verified: ${def.name}`);
+          console.log(`✓ Collection exists: ${schema.collectionId}`);
+          this.log.success.push(`Collection verified: ${schema.collectionId}`);
         } else {
-          console.error(`✗ Failed to create ${def.name}:`, error.message);
-          this.log.errors.push(`Collection ${def.name}: ${error.message}`);
+          console.error(`✗ Failed to create ${schema.collectionId}:`, error.message);
+          this.log.errors.push(`Collection ${schema.collectionId}: ${error.message}`);
         }
       }
     }
@@ -185,6 +185,11 @@ class AppwriteSetup {
 
       await this.createDatabase();
       await this.createCollections();
+      
+      // Wait for collections to be fully propagated in Appwrite
+      console.log('\nWaiting for collections to be ready...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
       await this.createIndexes();
 
       this.printSummary();
