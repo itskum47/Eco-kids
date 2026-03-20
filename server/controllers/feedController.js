@@ -1,9 +1,32 @@
 const EcoFeedPost = require('../models/EcoFeedPost');
 const User = require('../models/User');
+const mongoose = require('mongoose');
 const Filter = require('bad-words');
 const logger = require('../utils/logger');
 
 const filter = new Filter();
+
+const resolveSchoolScope = async (user) => {
+  if (user?.profile?.schoolId) return user.profile.schoolId;
+  if (user?.schoolId) return user.schoolId;
+  if (user?.school && mongoose.Types.ObjectId.isValid(String(user.school))) {
+    return user.school;
+  }
+
+  if (user?._id) {
+    const hydrated = await User.findById(user._id)
+      .select('school schoolId schoolCode profile.school profile.schoolId')
+      .lean();
+
+    if (hydrated?.profile?.schoolId) return hydrated.profile.schoolId;
+    if (hydrated?.schoolId) return hydrated.schoolId;
+    if (hydrated?.school && mongoose.Types.ObjectId.isValid(String(hydrated.school))) {
+      return hydrated.school;
+    }
+  }
+
+  return null;
+};
 
 /**
  * Feature 1: Cursor-based pagination
@@ -14,8 +37,9 @@ exports.getSchoolFeed = async (req, res, next) => {
   try {
     const { cursor, limit = 10 } = req.query;
     const user = req.user;
+    const schoolScope = await resolveSchoolScope(user);
 
-    if (!user?.school) {
+    if (!schoolScope) {
       return res.status(400).json({
         success: false,
         message: 'User not assigned to a school'
@@ -25,7 +49,7 @@ exports.getSchoolFeed = async (req, res, next) => {
     const limitNum = Math.min(parseInt(limit), 50); // Max 50 per page
 
     let query = {
-      school: user.school,
+      school: schoolScope,
       isVisible: true
     };
 
@@ -165,8 +189,9 @@ exports.createPost = async (req, res, next) => {
   try {
     const { caption, activityType, photoUrl, ecoPointsEarned } = req.body;
     const user = req.user;
+    const schoolScope = await resolveSchoolScope(user);
 
-    if (!user?.school) {
+    if (!schoolScope) {
       return res.status(400).json({
         success: false,
         message: 'User not assigned to a school'
@@ -187,7 +212,7 @@ exports.createPost = async (req, res, next) => {
       author: user._id,
       authorName: user.name,
       authorAvatar: user.avatar || null,
-      school: user.school,
+      school: schoolScope,
       activityType: activityType || 'general',
       photoUrl: photoUrl || null,
       caption: caption.trim(),
@@ -201,7 +226,7 @@ exports.createPost = async (req, res, next) => {
     // Feature 3: Real-time post broadcasting via Socket.io
     // ─────────────────────────────────────────────────────────
     if (global.io) {
-      global.io.to(`school-${user.school}`).emit('new-feed-post', {
+      global.io.to(`school-${schoolScope}`).emit('new-feed-post', {
         _id: post._id.toString(),
         authorName: post.authorName,
         authorAvatar: post.authorAvatar,

@@ -287,7 +287,7 @@ app.use('/api/v1/translate', require('./routes/translate'));
 app.use('/api/v1/activity', protect, schoolIsolation, require('./routes/activity'));  // Phase 6: School isolation
 
 // Phase 5: Social Proof Activity Feed
-app.use('/api/v1', require('./routes/feedRoutes'));
+app.use('/api/v1/feed', require('./routes/feedRoutes'));
 
 // Feature 8: Mobile App Integration
 app.use('/api/v1/mobile', require('./routes/mobile'));

@@ -1,4 +1,8 @@
 const crypto = require('crypto');
+const axios = require('axios');
+const jwt = require('jsonwebtoken');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 const User = require('../models/User');
 const ParentalConsent = require('../models/ParentalConsent');
 const ConsentRecord = require('../models/ConsentRecord');
@@ -11,9 +15,14 @@ const { sendSms } = require('../services/smsService');
 
 const OTP_EXPIRY_MS = 5 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 3;
+const APPWRITE_EMAIL_OTP_TTL_SECONDS = 15 * 60;
 
 const normalizePhone = (phone = '') => phone.toString().replace(/\D/g, '').replace(/^91/, '');
 const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+
+const APPWRITE_ENDPOINT = (process.env.APPWRITE_ENDPOINT || process.env.VITE_APPWRITE_ENDPOINT || 'https://sgp.cloud.appwrite.io/v1').replace(/\/$/, '');
+const APPWRITE_PROJECT_ID = process.env.APPWRITE_PROJECT_ID || process.env.VITE_APPWRITE_PROJECT_ID || '69b6ea3b0010c4b2e448';
+const MFA_CHALLENGE_TTL = process.env.MFA_CHALLENGE_EXPIRE || '5m';
 
 const parseDurationToMs = (value, fallbackMs) => {
   if (!value || typeof value !== 'string') return fallbackMs;
@@ -30,6 +39,10 @@ const parseDurationToMs = (value, fallbackMs) => {
   if (unit === 'd') return amount * 24 * 60 * 60 * 1000;
   return fallbackMs;
 };
+
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const hashValue = (value) => crypto.createHash('sha256').update(value).digest('hex');
+const mfaRolesRequired = ['school_admin', 'district_admin', 'state_admin', 'admin'];
 
 // Helper to get token, create cookie and send response
 const sendTokenResponse = async (user, statusCode, res) => {
@@ -95,6 +108,15 @@ const sendTokenResponse = async (user, statusCode, res) => {
 exports.register = async (req, res, next) => {
   try {
     const { name, email, password, role, profile } = req.body;
+    const requestedRole = String(role || 'student').toLowerCase();
+
+    // Public signup is intentionally limited to students to prevent privilege escalation.
+    if (requestedRole !== 'student') {
+      return res.status(403).json({
+        success: false,
+        message: 'Teacher/Admin accounts must be created by school or district admins. Please contact your institution administrator.'
+      });
+    }
 
     // Debug logging
     console.log('Registration data:', { name, email, password: password ? 'PROVIDED' : 'MISSING', role });
@@ -243,6 +265,28 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    // Enforce MFA challenge for privileged roles and users with MFA enabled.
+    if (user.mfaEnabled || mfaRolesRequired.includes(user.role)) {
+      const mfaChallengeToken = jwt.sign(
+        { id: user._id, role: user.role, mfaPending: true },
+        process.env.JWT_SECRET,
+        { expiresIn: MFA_CHALLENGE_TTL }
+      );
+
+      return res.status(200).json({
+        success: true,
+        mfaRequired: true,
+        message: 'MFA verification required',
+        mfaChallengeToken,
+        user: {
+          id: user._id,
+          role: user.role,
+          email: user.email,
+          name: user.name
+        }
+      });
+    }
+
     // Clear lockout on successful login
     await clearFailedAttempts(email);
 
@@ -265,19 +309,50 @@ exports.login = async (req, res, next) => {
   }
 };
 
-// @desc    Log user out / clear cookie
+// @desc    Log user out / revoke refresh token and clear cookies
 // @route   POST /api/auth/logout
-// @access  Public
+// @access  Private
 exports.logout = async (req, res, next) => {
-  res.cookie('token', 'none', {
-    expires: new Date(Date.now() + 10 * 1000),
-    httpOnly: true
-  });
+  try {
+    const userId = req.user?.id;
+    const rawRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
-  res.status(200).json({
-    success: true,
-    message: 'Logged out successfully'
-  });
+    if (userId) {
+      const update = {
+        $unset: { hashedRefreshToken: 1, refreshTokenExpire: 1 }
+      };
+
+      // If a token is provided, tighten revoke to the matching active token hash.
+      if (rawRefreshToken) {
+        const tokenHash = hashToken(rawRefreshToken);
+        await User.updateOne(
+          { _id: userId, hashedRefreshToken: tokenHash },
+          update
+        );
+      } else {
+        await User.findByIdAndUpdate(userId, update);
+      }
+
+      await logAuthEvent(
+        userId.toString(),
+        req.user.role,
+        'USER_LOGOUT',
+        req,
+        { refreshTokenRevoked: true }
+      ).catch(() => { });
+    }
+
+    res
+      .clearCookie('token')
+      .clearCookie('refreshToken', { path: '/api/v1/auth/refresh' })
+      .status(200)
+      .json({
+        success: true,
+        message: 'Logged out successfully'
+      });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // @desc    Get current logged in user
@@ -513,15 +588,12 @@ exports.deleteAccount = async (req, res, next) => {
 // @access  Public (uses refreshToken cookie)
 exports.refreshToken = async (req, res, next) => {
   try {
-    const rawToken = req.cookies?.refreshToken;
+    const rawToken = req.cookies?.refreshToken || req.body?.refreshToken;
     if (!rawToken) {
       return res.status(401).json({ success: false, message: 'No refresh token provided' });
     }
 
-    const hashedIncoming = require('crypto')
-      .createHash('sha256')
-      .update(rawToken)
-      .digest('hex');
+    const hashedIncoming = hashToken(rawToken);
 
     const user = await User.findOne({
       hashedRefreshToken: hashedIncoming,
@@ -550,9 +622,207 @@ exports.revokeRefreshToken = async (req, res, next) => {
 
     res
       .clearCookie('token')
+      .clearCookie('refreshToken')
       .clearCookie('refreshToken', { path: '/api/v1/auth/refresh' })
       .status(200)
       .json({ success: true, message: 'Logged out and refresh token revoked' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Initialize MFA setup by generating pending secret and QR
+// @route   POST /api/v1/auth/mfa/setup
+// @access  Private
+exports.setupMfa = async (req, res, next) => {
+  try {
+    const { currentPassword } = req.body;
+    if (!currentPassword) {
+      return res.status(400).json({ success: false, message: 'Current password is required' });
+    }
+
+    const user = await User.findById(req.user.id).select('+password +mfaPendingSecret');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isValidPassword = await user.matchPassword(currentPassword);
+    if (!isValidPassword) {
+      return res.status(401).json({ success: false, message: 'Password is incorrect' });
+    }
+
+    const speakeasy = require('speakeasy');
+    const QRCode = require('qrcode');
+
+    const secret = speakeasy.generateSecret({
+      name: `EcoKids (${user.email})`,
+      issuer: 'EcoKids India',
+      length: 20
+    });
+
+    user.mfaPendingSecret = secret.base32;
+    await user.save({ validateBeforeSave: false });
+
+    const qrCode = await QRCode.toDataURL(secret.otpauth_url);
+
+    return res.status(200).json({
+      success: true,
+      message: 'MFA setup initiated',
+      qrCode,
+      secret: secret.base32
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify TOTP and enable MFA
+// @route   POST /api/v1/auth/mfa/verify
+// @access  Private
+exports.verifyMfaSetup = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ success: false, message: 'MFA token is required' });
+    }
+
+    const user = await User.findById(req.user.id).select('+mfaPendingSecret +backupCodes');
+    if (!user || !user.mfaPendingSecret) {
+      return res.status(400).json({ success: false, message: 'MFA setup not initiated' });
+    }
+
+    const speakeasy = require('speakeasy');
+    const verified = speakeasy.totp.verify({
+      secret: user.mfaPendingSecret,
+      encoding: 'base32',
+      token: String(token),
+      window: 2
+    });
+
+    if (!verified) {
+      return res.status(401).json({ success: false, message: 'Invalid MFA token' });
+    }
+
+    const backupCodes = Array.from({ length: 8 }, () =>
+      crypto.randomBytes(4).toString('hex').toUpperCase()
+    );
+
+    user.mfaEnabled = true;
+    user.mfaSecret = user.mfaPendingSecret;
+    user.mfaPendingSecret = undefined;
+    user.mfaEnabledAt = new Date();
+    user.backupCodes = backupCodes.map((code) => ({ code: hashValue(code), used: false }));
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json({
+      success: true,
+      message: 'MFA enabled successfully',
+      backupCodes
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify MFA challenge during login
+// @route   POST /api/v1/auth/verify-mfa
+// @access  Public
+exports.verifyMfaLogin = async (req, res, next) => {
+  try {
+    const { mfaChallengeToken, totp } = req.body;
+    if (!mfaChallengeToken || !totp) {
+      return res.status(400).json({ success: false, message: 'MFA challenge token and code are required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(mfaChallengeToken, process.env.JWT_SECRET);
+    } catch (error) {
+      return res.status(401).json({ success: false, message: 'Invalid or expired MFA challenge token' });
+    }
+
+    if (!decoded.mfaPending) {
+      return res.status(401).json({ success: false, message: 'Invalid MFA challenge token' });
+    }
+
+    const user = await User.findById(decoded.id).select('+mfaSecret +backupCodes +password');
+    if (!user || !user.isActive) {
+      return res.status(401).json({ success: false, message: 'Account not available' });
+    }
+
+    let verified = false;
+    if (user.mfaSecret) {
+      const speakeasy = require('speakeasy');
+      verified = speakeasy.totp.verify({
+        secret: user.mfaSecret,
+        encoding: 'base32',
+        token: String(totp),
+        window: 2
+      });
+    }
+
+    if (!verified && Array.isArray(user.backupCodes)) {
+      const incomingHash = hashValue(String(totp).trim().toUpperCase());
+      const backup = user.backupCodes.find((entry) => entry.code === incomingHash && !entry.used);
+      if (backup) {
+        backup.used = true;
+        backup.usedAt = new Date();
+        verified = true;
+      }
+    }
+
+    if (!verified) {
+      return res.status(401).json({ success: false, message: 'Invalid MFA token or backup code' });
+    }
+
+    user.lastLogin = new Date();
+    user.mfaLastUsed = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    await logAuthEvent(
+      user._id.toString(),
+      user.role,
+      'USER_LOGIN_MFA',
+      req,
+      { method: 'totp_or_backup' }
+    ).catch(() => { });
+
+    return sendTokenResponse(user, 200, res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Disable MFA for current user
+// @route   POST /api/v1/auth/mfa/disable
+// @access  Private
+exports.disableMfa = async (req, res, next) => {
+  try {
+    const { currentPassword } = req.body;
+    if (!currentPassword) {
+      return res.status(400).json({ success: false, message: 'Current password is required' });
+    }
+
+    const user = await User.findById(req.user.id).select('+password');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isValidPassword = await user.matchPassword(currentPassword);
+    if (!isValidPassword) {
+      return res.status(401).json({ success: false, message: 'Password is incorrect' });
+    }
+
+    user.mfaEnabled = false;
+    user.mfaSecret = undefined;
+    user.mfaPendingSecret = undefined;
+    user.backupCodes = [];
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json({
+      success: true,
+      message: 'MFA disabled successfully'
+    });
   } catch (error) {
     next(error);
   }
@@ -723,6 +993,173 @@ exports.verifyOtp = async (req, res, next) => {
     return sendTokenResponse(user, 200, res);
   } catch (error) {
     next(error);
+  }
+};
+
+// @desc    Login student using Appwrite email OTP session
+// @route   POST /api/v1/auth/login-email-otp-appwrite
+// @access  Public
+exports.sendEmailOtpAppwrite = async (req, res, next) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    const localStudent = await User.findOne({ email, role: 'student', isActive: true }).select('_id');
+    if (!localStudent) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student account not found. Ask your school admin to register you first.'
+      });
+    }
+
+    const tokenRes = await axios.post(
+      `${APPWRITE_ENDPOINT}/account/tokens/email`,
+      {
+        userId: 'unique()',
+        email
+      },
+      {
+        headers: {
+          'X-Appwrite-Project': APPWRITE_PROJECT_ID,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+
+    const otpUserId = String(tokenRes?.data?.userId || '').trim();
+    if (!otpUserId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Could not initialize OTP session. Please try again.'
+      });
+    }
+
+    await redisClient.set(`appwrite_email_otp:${otpUserId}`, email, 'EX', APPWRITE_EMAIL_OTP_TTL_SECONDS);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Email OTP sent successfully',
+      userId: otpUserId
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error?.response?.data?.message || 'Could not send email OTP. Please try again.'
+    });
+  }
+};
+
+exports.loginEmailOtpAppwrite = async (req, res, next) => {
+  try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    let sessionSecret = String(req.body.sessionSecret || '').trim();
+    const userId = String(req.body.userId || '').trim();
+    const otp = String(req.body.otp || '').trim();
+    let verifiedByOtpFlow = false;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email is required'
+      });
+    }
+
+    if (!sessionSecret && userId && otp) {
+      const expectedEmail = String(await redisClient.get(`appwrite_email_otp:${userId}`) || '').trim().toLowerCase();
+      if (!expectedEmail) {
+        return res.status(401).json({
+          success: false,
+          message: 'OTP session expired. Please request a new email OTP.'
+        });
+      }
+
+      if (expectedEmail !== email) {
+        return res.status(401).json({
+          success: false,
+          message: 'Email does not match the OTP session. Please request a new OTP.'
+        });
+      }
+
+      const sessionRes = await axios.post(
+        `${APPWRITE_ENDPOINT}/account/sessions/token`,
+        {
+          userId,
+          secret: otp
+        },
+        {
+          headers: {
+            'X-Appwrite-Project': APPWRITE_PROJECT_ID,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
+        }
+      );
+
+      sessionSecret = String(sessionRes?.data?.secret || '').trim();
+      verifiedByOtpFlow = true;
+    }
+
+    if (!sessionSecret && !verifiedByOtpFlow) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email OTP or Appwrite session secret is required'
+      });
+    }
+
+    if (!verifiedByOtpFlow) {
+      const appwriteAccount = await axios.get(`${APPWRITE_ENDPOINT}/account`, {
+        headers: {
+          'X-Appwrite-Project': APPWRITE_PROJECT_ID,
+          'X-Appwrite-Session': sessionSecret,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000
+      });
+
+      const appwriteEmail = String(appwriteAccount?.data?.email || '').trim().toLowerCase();
+      if (!appwriteEmail || appwriteEmail !== email) {
+        return res.status(401).json({
+          success: false,
+          message: 'Email verification mismatch. Please retry OTP login.'
+        });
+      }
+    }
+
+    const user = await User.findOne({ email, role: 'student' }).select('+password');
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Student account not available. Ask your school admin to register you.'
+      });
+    }
+
+    user.lastLogin = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    await logAuthEvent(
+      user._id.toString(),
+      user.role,
+      'USER_LOGIN_EMAIL_OTP_APPWRITE',
+      req,
+      { email }
+    ).catch(() => {});
+
+    if (userId) {
+      await redisClient.del(`appwrite_email_otp:${userId}`);
+    }
+
+    return sendTokenResponse(user, 200, res);
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: error?.response?.data?.message || 'Appwrite OTP verification failed. Please request a new OTP.'
+    });
   }
 };
 

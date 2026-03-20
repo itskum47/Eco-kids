@@ -172,11 +172,26 @@ const Register = () => {
               <FaUserPlus className="text-2xl text-white" />
             </motion.div>
             <h1 className="text-3xl font-black text-gray-900 mb-1" style={{ fontFamily: "'Nunito', sans-serif" }}>
-              {t('auth.register_title') || 'Create Account 🌱'}
+              {t('auth.register_title') || 'Create Student Account 🌱'}
             </h1>
             <p className="text-sm text-gray-500">
-              {t('auth.register_subtitle') || 'Join the EcoKids India community'}
+              {t('auth.register_subtitle') || 'Student self-signup for EcoKids India'}
             </p>
+
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-left">
+              <p className="text-xs font-semibold text-amber-800">
+                Teacher/Admin accounts are created by school or district admins.
+              </p>
+              <p className="mt-1 text-xs text-amber-700">
+                If your institution has already created your account, use Log In instead of Sign Up.
+              </p>
+              <Link
+                to="/login?mode=staff"
+                className="mt-3 inline-flex items-center rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-800 transition-colors hover:bg-amber-100"
+              >
+                Teacher/Admin Access - Continue to Staff Log In
+              </Link>
+            </div>
           </div>
 
           {/* Progress Indicator */}

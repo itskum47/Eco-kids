@@ -46,6 +46,16 @@ export default function SubmitActivityPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isOnline, submitActivity: submitOfflineActivity } = useOfflineQueue();  // Phase 6: Offline support
+  const lightPageVars = {
+    '--bg': '#f8fafc',
+    '--s1': '#ffffff',
+    '--s2': '#f8fafc',
+    '--b1': '#e2e8f0',
+    '--b2': '#cbd5e1',
+    '--t1': '#0f172a',
+    '--t2': '#475569',
+    '--t3': '#64748b'
+  };
   const [view, setView] = useState('submit'); // 'submit' or 'mySubmissions'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -194,7 +204,7 @@ export default function SubmitActivityPage() {
   const selectedActivity = ACTIVITY_TYPES.find(a => a.value === formData.activityType);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[var(--bg)] pb-24 md:pb-10 overflow-x-hidden relative">
+    <div className="min-h-screen bg-gray-50 dark:bg-[var(--bg)] pb-24 md:pb-10 overflow-x-hidden relative" style={lightPageVars}>
       <Navbar />
 
       <main className="max-w-[760px] mx-auto px-4 sm:px-6 py-6 md:py-10 relative z-10">

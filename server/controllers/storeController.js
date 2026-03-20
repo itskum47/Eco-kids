@@ -6,7 +6,11 @@ const User = require('../models/User');
 const { featureFlags } = require('../config/featureFlags');
 
 const ensureEnabled = (res) => {
-  if (!featureFlags.ECO_STORE) {
+  const ecoStoreEnabled =
+    process.env.FEATURE_ECO_STORE !== 'false' &&
+    process.env.FEATURE_STORE !== 'false';
+
+  if (!ecoStoreEnabled) {
     res.status(403).json({
       success: false,
       message: 'Eco Store is currently disabled'

@@ -321,6 +321,32 @@ const UserSchema = new mongoose.Schema({
     select: false
   },
     refreshTokenExpire: Date,
+    mfaEnabled: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    mfaSecret: {
+      type: String,
+      select: false
+    },
+    mfaPendingSecret: {
+      type: String,
+      select: false
+    },
+    backupCodes: [{
+      code: {
+        type: String,
+        select: false
+      },
+      used: {
+        type: Boolean,
+        default: false
+      },
+      usedAt: Date
+    }],
+    mfaEnabledAt: Date,
+    mfaLastUsed: Date,
   
     // Parental consent fields (DPDP Act 2023 - Section 1B)
     parentName: {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { FaEdit, FaSave, FaTimes, FaCamera, FaMedal, FaTrophy, FaFire, FaLeaf, FaChevronRight } from 'react-icons/fa';
 import Navbar from '../components/layout/Navbar';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +11,19 @@ import LevelRing from '../components/dashboard/LevelRing';
 
 const Profile = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useSelector(state => state.auth);
+
+  const lightPageVars = {
+    '--bg': '#f8fafc',
+    '--s1': '#ffffff',
+    '--s2': '#f8fafc',
+    '--b1': '#e2e8f0',
+    '--b2': '#cbd5e1',
+    '--t1': '#0f172a',
+    '--t2': '#475569',
+    '--t3': '#64748b'
+  };
 
   const [activeTab, setActiveTab] = useState('overview');
   const [editMode, setEditMode] = useState(false);
@@ -121,7 +134,7 @@ const Profile = () => {
   const heatmapData = generateHeatmap();
 
   return (
-    <div className="min-h-screen bg-white pb-24 md:pb-10 overflow-x-hidden relative">
+    <div className="min-h-screen bg-white pb-24 md:pb-10 overflow-x-hidden relative" style={lightPageVars}>
       <Navbar />
 
       {/* Decorative Orbs */}
@@ -331,15 +344,20 @@ const Profile = () => {
                   <h3 className="font-ui font-bold text-sm tracking-widest uppercase text-[var(--t1)] mb-1">Badge Case</h3>
                   <p className="text-xs font-ui text-[var(--t2)]">{earnedBadges.length} of {allBadges.length || 20} Unlocked</p>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-[var(--s1)] border border-[var(--b1)] flex items-center justify-center text-[var(--t3)] hover:text-[var(--t1)] hover:border-[var(--v1)] cursor-pointer transition-colors">
+                <button
+                  type="button"
+                  onClick={() => navigate('/profile/achievements')}
+                  className="w-10 h-10 rounded-full bg-[var(--s1)] border border-[var(--b1)] flex items-center justify-center text-[var(--t3)] hover:text-[var(--t1)] hover:border-[var(--v1)] cursor-pointer transition-colors"
+                  aria-label="Open achievements"
+                >
                   <FaChevronRight size={12} />
-                </div>
+                </button>
               </div>
 
               {loading ? (
                 <div className="flex justify-center p-10"><div className="w-8 h-8 rounded-full border-4 border-[var(--s2)] border-t-[var(--v1)] animate-spin"></div></div>
               ) : allBadges.length === 0 ? (
-                <div className="text-center p-10 bg-[var(--s1)] rounded-2xl border border-[var(--b1)] border-dashed text-[var(--t2)] text-sm font-ui border-white/5">
+                <div className="text-center p-10 bg-[var(--s1)] rounded-2xl border border-[var(--b1)] border-dashed text-[var(--t2)] text-sm font-ui">
                   Complete missions to earn your first badge!
                 </div>
               ) : (

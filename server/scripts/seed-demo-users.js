@@ -30,6 +30,19 @@ const ensureUser = async (payload) => {
   return { user, created: true, password: payload.password };
 };
 
+const syncScopedProfile = async (email, schoolMeta) => {
+  await User.updateOne(
+    { email },
+    {
+      $set: {
+        'profile.state': schoolMeta.state,
+        'profile.district': schoolMeta.district,
+        'profile.school': schoolMeta.name
+      }
+    }
+  );
+};
+
 const run = async () => {
   const credentials = [];
   let createdCount = 0;
@@ -86,6 +99,7 @@ const run = async () => {
             },
           });
           if (result.created) createdCount += 1;
+          await syncScopedProfile(email, s);
           credentials.push({ email, password: 'EcoKids@123', role: 'student' });
         }
       }
@@ -102,6 +116,7 @@ const run = async () => {
           profile: { school: s.name, schoolId: school._id, bio: subject },
         });
         if (result.created) createdCount += 1;
+        await syncScopedProfile(email, s);
         credentials.push({ email, password: 'Teacher@123', role: 'teacher' });
       }
 
@@ -115,6 +130,7 @@ const run = async () => {
         profile: { school: s.name, schoolId: school._id },
       });
       if (adminResult.created) createdCount += 1;
+      await syncScopedProfile(adminEmail, s);
       credentials.push({ email: adminEmail, password: 'Admin@123', role: 'school_admin' });
 
       for (const sec of ['a', 'b']) {
@@ -129,18 +145,50 @@ const run = async () => {
           profile: { school: s.name, schoolId: school._id },
         });
         if (result.created) createdCount += 1;
+        await syncScopedProfile(email, s);
         credentials.push({ email, password: 'Parent@123', role: 'parent-linked' });
       }
     }
 
     const globalAccounts = [
-      { email: 'district.admin@ecokids.in', password: 'District@123', role: 'district_admin', name: 'District Admin' },
-      { email: 'state.admin@ecokids.in', password: 'State@123', role: 'state_admin', name: 'State Admin' },
+      {
+        email: 'district.admin@ecokids.in',
+        password: 'District@123',
+        role: 'district_admin',
+        name: 'District Admin',
+        profile: { state: 'Delhi', district: 'New Delhi' }
+      },
+      {
+        email: 'state.admin@ecokids.in',
+        password: 'State@123',
+        role: 'state_admin',
+        name: 'State Admin',
+        profile: { state: 'Delhi' }
+      },
       { email: 'superadmin@ecokids.in', password: 'SuperAdmin@123', role: 'admin', name: 'Super Admin' },
     ];
 
     for (const item of globalAccounts) {
-      const result = await ensureUser({ name: item.name, email: item.email, password: item.password, role: item.role });
+      const result = await ensureUser({
+        name: item.name,
+        email: item.email,
+        password: item.password,
+        role: item.role,
+        ...(item.profile ? { profile: item.profile } : {})
+      });
+
+      // Keep scope fields in sync for existing accounts created before this fix.
+      if (item.profile) {
+        await User.updateOne(
+          { email: item.email },
+          {
+            $set: {
+              'profile.state': item.profile.state,
+              ...(item.profile.district ? { 'profile.district': item.profile.district } : {})
+            }
+          }
+        );
+      }
       if (result.created) createdCount += 1;
       credentials.push({ email: item.email, password: item.password, role: item.role });
     }

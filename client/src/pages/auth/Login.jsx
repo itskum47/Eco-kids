@@ -19,11 +19,14 @@ const Login = () => {
   const [phoneData, setPhoneData] = useState({ phone: '', otp: '' });
   const [qrToken, setQrToken] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
   const [otpInfo, setOtpInfo] = useState('');
+  const [emailOtpData, setEmailOtpData] = useState({ email: '', otp: '', userId: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [staffMode, setStaffMode] = useState(false);
 
   const getApiError = (err, fallback) => {
     return err?.response?.data?.message || err?.response?.data?.error || fallback;
@@ -32,6 +35,13 @@ const Login = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     setSessionExpired(params.get('session') === 'expired');
+    const isStaffMode = params.get('mode') === 'staff';
+    setStaffMode(isStaffMode);
+    if (isStaffMode) {
+      setActiveTab('email');
+      setOtpError('');
+      setOtpInfo('');
+    }
   }, [location.search]);
 
   useEffect(() => {
@@ -106,12 +116,49 @@ const Login = () => {
       });
 
       const role = response.data?.user?.role || 'student';
-      if (response.data?.token) {
-        localStorage.setItem('token', response.data.token);
-      }
       navigate(destinationForRole(role));
     } catch (err) {
       setOtpError(getApiError(err, 'Invalid OTP'));
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const sendEmailOtp = async () => {
+    if (!emailOtpData.email) return;
+    setOtpLoading(true);
+    setOtpError('');
+    setOtpInfo('');
+    try {
+      const tokenRes = await axios.post('/api/v1/auth/send-email-otp-appwrite', {
+        email: emailOtpData.email
+      });
+      setEmailOtpData((prev) => ({ ...prev, userId: tokenRes?.data?.userId || '', otp: '' }));
+      setEmailOtpSent(true);
+      setOtpInfo('OTP sent to email. Students: enter the OTP from Appwrite email.');
+    } catch (err) {
+      setOtpError(getApiError(err, 'Could not send email OTP. Check your email and try again.'));
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const verifyEmailOtp = async () => {
+    if (!emailOtpData.email || !emailOtpData.otp || !emailOtpData.userId) return;
+    setOtpLoading(true);
+    setOtpError('');
+    setOtpInfo('');
+    try {
+      const response = await axios.post('/api/v1/auth/login-email-otp-appwrite', {
+        email: emailOtpData.email,
+        userId: emailOtpData.userId,
+        otp: emailOtpData.otp
+      });
+
+      const role = response.data?.user?.role || 'student';
+      navigate(destinationForRole(role));
+    } catch (err) {
+      setOtpError(getApiError(err, 'Invalid email OTP. Please try again.'));
     } finally {
       setOtpLoading(false);
     }
@@ -169,6 +216,20 @@ const Login = () => {
           </AnimatePresence>
 
           <AnimatePresence>
+            {staffMode && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-6 px-4 py-3 rounded-xl text-sm text-blue-800"
+                style={{ background: '#eff6ff', border: '1px solid #bfdbfe' }}
+              >
+                Teacher/Admin access uses Email + Password provided by your institution.
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
             {activeTab === 'email' && error && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
@@ -183,7 +244,7 @@ const Login = () => {
             )}
           </AnimatePresence>
 
-          <div className="mb-5 rounded-xl border border-green-100 p-1 bg-green-50/60 grid grid-cols-3 gap-1">
+          <div className="mb-5 rounded-xl border border-green-100 p-1 bg-green-50/60 grid grid-cols-4 gap-1">
             <button
               type="button"
               onClick={() => setActiveTab('email')}
@@ -193,15 +254,40 @@ const Login = () => {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('phone')}
-              className={`py-2 rounded-lg text-sm font-bold transition ${activeTab === 'phone' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500'}`}
+              onClick={() => {
+                if (staffMode) return;
+                setActiveTab('email-otp');
+                setEmailOtpSent(false);
+                setOtpError('');
+                setOtpInfo('');
+              }}
+              disabled={staffMode}
+              className={`py-2 rounded-lg text-sm font-bold transition ${staffMode ? 'text-gray-300 cursor-not-allowed' : (activeTab === 'email-otp' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500')}`}
+            >
+              <span className="inline-flex items-center gap-2">✉️ Email OTP</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (staffMode) return;
+                setActiveTab('phone');
+                setOtpSent(false);
+                setOtpError('');
+                setOtpInfo('');
+              }}
+              disabled={staffMode}
+              className={`py-2 rounded-lg text-sm font-bold transition ${staffMode ? 'text-gray-300 cursor-not-allowed' : (activeTab === 'phone' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500')}`}
             >
               <span className="inline-flex items-center gap-2"><FaMobileAlt /> Login with Phone</span>
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('qr')}
-              className={`py-2 rounded-lg text-sm font-bold transition ${activeTab === 'qr' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500'}`}
+              onClick={() => {
+                if (staffMode) return;
+                setActiveTab('qr');
+              }}
+              disabled={staffMode}
+              className={`py-2 rounded-lg text-sm font-bold transition ${staffMode ? 'text-gray-300 cursor-not-allowed' : (activeTab === 'qr' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500')}`}
             >
               <span className="inline-flex items-center gap-2">📷 Scan QR</span>
             </button>
@@ -288,6 +374,66 @@ const Login = () => {
               )}
             </motion.button>
           </form>
+          ) : activeTab === 'email-otp' ? (
+            <div className="space-y-5">
+              {otpError && (
+                <div className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg border border-red-100">
+                  {otpError}
+                </div>
+              )}
+
+              {otpInfo && (
+                <div className="text-emerald-700 text-sm bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
+                  {otpInfo}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1.5">Student Email</label>
+                <input
+                  type="email"
+                  value={emailOtpData.email}
+                  onChange={(e) => setEmailOtpData({ ...emailOtpData, email: e.target.value })}
+                  placeholder="student@school.com"
+                  className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-gray-800 text-sm font-medium placeholder-gray-400 transition-all outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100"
+                />
+              </div>
+
+              {emailOtpSent && (
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1.5">Email OTP</label>
+                  <input
+                    type="text"
+                    value={emailOtpData.otp}
+                    onChange={(e) => setEmailOtpData({ ...emailOtpData, otp: e.target.value })}
+                    placeholder="Enter OTP from email"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 text-gray-800 text-sm font-medium placeholder-gray-400 transition-all outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100"
+                  />
+                </div>
+              )}
+
+              {!emailOtpSent ? (
+                <button
+                  type="button"
+                  onClick={sendEmailOtp}
+                  disabled={otpLoading}
+                  className="w-full py-3.5 rounded-xl font-black text-white text-base shadow-md hover:shadow-lg transition-all disabled:opacity-60"
+                  style={{ background: otpLoading ? '#81c784' : 'linear-gradient(135deg, #2e7d32, #43a047)' }}
+                >
+                  {otpLoading ? 'Sending OTP...' : 'Send Email OTP'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={verifyEmailOtp}
+                  disabled={otpLoading}
+                  className="w-full py-3.5 rounded-xl font-black text-white text-base shadow-md hover:shadow-lg transition-all disabled:opacity-60"
+                  style={{ background: otpLoading ? '#81c784' : 'linear-gradient(135deg, #2e7d32, #43a047)' }}
+                >
+                  {otpLoading ? 'Verifying...' : 'Verify Email OTP'}
+                </button>
+              )}
+            </div>
           ) : activeTab === 'phone' ? (
             <div className="space-y-5">
               {otpError && (

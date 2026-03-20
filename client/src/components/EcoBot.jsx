@@ -14,7 +14,21 @@ const EcoBot = ({ user }) => {
   const { t, i18n } = useTranslation();
   const reduxUser = useSelector((state) => state.auth.user);
   const activeUser = reduxUser || user;
-  const grade = activeUser?.profile?.grade || activeUser?.grade || '6';
+  const role = activeUser?.role || 'student';
+  const roleDisplayMap = {
+    student: 'Student',
+    teacher: 'Teacher',
+    school_admin: 'School Admin',
+    district_admin: 'District Admin',
+    state_admin: 'State Admin',
+    admin: 'Platform Admin'
+  };
+
+  const rawGrade = activeUser?.profile?.grade || activeUser?.profile?.gradeLevel || activeUser?.grade;
+  const parsedGrade = Number.parseInt(rawGrade, 10);
+  const isStudent = role === 'student';
+  const grade = isStudent ? (Number.isNaN(parsedGrade) ? 6 : parsedGrade) : null;
+  const botModeLabel = isStudent ? `Grade ${grade} Mode` : `${roleDisplayMap[role] || 'Staff'} Mode`;
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -51,9 +65,15 @@ const EcoBot = ({ user }) => {
 
     try {
       const normalizedLanguage = (i18n.language || 'en').split('-')[0];
+      const payload = {
+        message: text,
+        language: normalizedLanguage,
+        role,
+        ...(isStudent && grade ? { grade } : {})
+      };
       const response = await api.post(
         '/v1/ai/chat',
-        { message: text, language: normalizedLanguage, grade },
+        payload,
         { timeout: 35000 }
       );
       const reply = response?.data?.reply;
@@ -177,7 +197,7 @@ const EcoBot = ({ user }) => {
                   <h3 className="font-bold text-sm">{t('ecobot.title', { defaultValue: 'EcoBot' })}</h3>
                   <p className="text-xs opacity-90">{t('ecobot.subtitle', { defaultValue: 'Your eco-coach' })}</p>
                   <div className="mt-1 inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-[10px] font-semibold text-green-700">
-                    🎓 Grade {grade} Mode
+                    🎓 {botModeLabel}
                   </div>
                 </div>
               </div>

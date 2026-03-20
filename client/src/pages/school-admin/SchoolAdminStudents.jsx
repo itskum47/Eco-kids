@@ -50,7 +50,7 @@ const SchoolAdminStudents = () => {
                 </div>
             </div>
 
-            <div className="bg-[var(--s1)] rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-sm text-gray-500">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-100">
@@ -70,7 +70,7 @@ const SchoolAdminStudents = () => {
                                 </tr>
                             ) : (
                                 students.map((student) => (
-                                    <tr key={student._id} className="bg-[var(--s1)] border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                                    <tr key={student._id} className="bg-white border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 font-medium text-gray-900 flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                                                 {student.name.charAt(0)}
@@ -112,14 +112,14 @@ const SchoolAdminStudents = () => {
                             <button
                                 onClick={() => fetchStudents(pagination.page - 1)}
                                 disabled={pagination.page <= 1}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-[var(--s1)] border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 Previous
                             </button>
                             <button
                                 onClick={() => fetchStudents(pagination.page + 1)}
                                 disabled={pagination.page >= pagination.pages}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-[var(--s1)] border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 Next
                             </button>
