@@ -113,55 +113,71 @@ function calculateMonthlyDelta(baseline = {}, current = {}) {
 }
 
 exports.getImpactStats = asyncHandler(async (req, res) => {
-  const [submissionAgg, userAgg] = await Promise.all([
-    ActivitySubmission.aggregate([
-      { $match: { status: 'approved' } },
-      {
-        $group: {
-          _id: null,
-          treesPlanted: {
-            $sum: {
-              $cond: [{ $eq: ['$activityType', 'tree-planting'] }, 1, 0]
-            }
-          },
-          co2Saved: {
-            $sum: {
-              $cond: [{ $in: ['$activityType', ['tree-planting', 'energy-saving', 'plastic-reduction', 'waste-recycling', 'composting', 'biodiversity-survey']] }, 5, 0]
-            }
-          },
-          waterSaved: {
-            $sum: {
-              $cond: [{ $eq: ['$activityType', 'water-saving'] }, 100, 0]
+  try {
+    const [submissionAgg, userAgg] = await Promise.all([
+      ActivitySubmission.aggregate([
+        { $match: { status: 'approved' } },
+        {
+          $group: {
+            _id: null,
+            treesPlanted: {
+              $sum: {
+                $cond: [{ $eq: ['$activityType', 'tree-planting'] }, 1, 0]
+              }
+            },
+            co2Saved: {
+              $sum: {
+                $cond: [{ $in: ['$activityType', ['tree-planting', 'energy-saving', 'plastic-reduction', 'waste-recycling', 'composting', 'biodiversity-survey']] }, 5, 0]
+              }
+            },
+            waterSaved: {
+              $sum: {
+                $cond: [{ $eq: ['$activityType', 'water-saving'] }, 100, 0]
+              }
             }
           }
         }
-      }
-    ]),
-    User.aggregate([
-      { $match: { role: 'student', isActive: true } },
-      {
-        $group: {
-          _id: null,
-          studentsActive: { $sum: 1 },
-          schools: { $addToSet: '$profile.school' }
+      ]),
+      User.aggregate([
+        { $match: { role: 'student', isActive: true } },
+        {
+          $group: {
+            _id: null,
+            studentsActive: { $sum: 1 },
+            schools: { $addToSet: '$profile.school' }
+          }
         }
+      ])
+    ]);
+
+    const submissionData = submissionAgg[0] || {};
+    const userData = userAgg[0] || {};
+
+    res.status(200).json({
+      success: true,
+      data: {
+        treesPlanted: submissionData.treesPlanted || 0,
+        co2Saved: submissionData.co2Saved || 0,
+        waterSaved: submissionData.waterSaved || 0,
+        schoolsJoined: (userData.schools || []).filter(Boolean).length,
+        studentsActive: userData.studentsActive || 0
       }
-    ])
-  ]);
-
-  const submissionData = submissionAgg[0] || {};
-  const userData = userAgg[0] || {};
-
-  res.status(200).json({
-    success: true,
-    data: {
-      treesPlanted: submissionData.treesPlanted || 0,
-      co2Saved: submissionData.co2Saved || 0,
-      waterSaved: submissionData.waterSaved || 0,
-      schoolsJoined: (userData.schools || []).filter(Boolean).length,
-      studentsActive: userData.studentsActive || 0
-    }
-  });
+    });
+  } catch (error) {
+    // If MongoDB is unavailable, return default stats
+    console.warn('Failed to fetch impact stats from MongoDB:', error.message);
+    res.status(200).json({
+      success: true,
+      data: {
+        treesPlanted: 0,
+        co2Saved: 0,
+        waterSaved: 0,
+        schoolsJoined: 0,
+        studentsActive: 0
+      },
+      note: 'Stats unavailable - database connection error'
+    });
+  }
 });
 
 /**

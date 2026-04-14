@@ -23,14 +23,14 @@ const ensureCsrfToken = async () => {
 
 const getAdaptiveTimeout = () => {
   const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  if (!conn) return 10000;
+  if (!conn) return 30000; // Increased from 10s to 30s
 
   const isSlowNetwork = ['slow-2g', '2g', '3g'].includes(conn.effectiveType);
   if (conn.saveData || isSlowNetwork) {
-    return 18000;
+    return 40000; // Increased from 18s to 40s for slow networks
   }
 
-  return 10000;
+  return 30000; // Increased from 10s to 30s
 };
 
 // Create axios instance

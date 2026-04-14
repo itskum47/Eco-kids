@@ -91,6 +91,10 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    clearLoading: (state) => {
+      // Safety fallback: force loading to false if stuck for too long
+      state.isLoading = false;
+    },
     clearAuth: (state) => {
       state.user = null;
       state.token = null;
@@ -167,5 +171,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, clearAuth } = authSlice.actions;
+export const { clearError, clearAuth, clearLoading } = authSlice.actions;
 export default authSlice.reducer;

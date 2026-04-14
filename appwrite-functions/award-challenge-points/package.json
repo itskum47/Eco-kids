@@ -1,0 +1,12 @@
+{
+  "name": "award-challenge-points",
+  "version": "1.0.0",
+  "description": "Award points for completed challenges",
+  "main": "src/main.js",
+  "engines": {
+    "node": "18.0.0"
+  },
+  "dependencies": {
+    "node-appwrite": "^14.1.0"
+  }
+}

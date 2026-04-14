@@ -101,7 +101,7 @@ const getAllowedOrigins = () => {
       ? process.env.ALLOWED_ORIGINS.split(',')
       : [];
   }
-  return ['http://localhost:5173', 'http://localhost:3000'];
+  return ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
 };
 
 app.use(cors({

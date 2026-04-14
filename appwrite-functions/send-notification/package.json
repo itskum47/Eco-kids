@@ -1,0 +1,12 @@
+{
+  "name": "send-notification",
+  "version": "1.0.0",
+  "description": "Send email and SMS notifications",
+  "main": "src/main.js",
+  "engines": {
+    "node": "18.0.0"
+  },
+  "dependencies": {
+    "node-appwrite": "^14.1.0"
+  }
+}

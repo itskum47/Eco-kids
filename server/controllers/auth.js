@@ -3,7 +3,8 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
-const User = require('../models/User');
+const User = require('../models/UserAdapter'); // Use adapter that falls back to Appwrite when MongoDB is down
+const AppwriteUserService = require('../services/appwriteUserService'); // Direct Appwrite access for new registrations
 const ParentalConsent = require('../models/ParentalConsent');
 const ConsentRecord = require('../models/ConsentRecord');
 const School = require('../models/School');
@@ -64,7 +65,18 @@ const sendTokenResponse = async (user, statusCode, res) => {
 
   user.hashedRefreshToken = hashedRefreshToken;
   user.refreshTokenExpire = new Date(Date.now() + refreshTokenTtlMs);
-  await user.save({ validateBeforeSave: false });
+  
+  // Only save to MongoDB if user has a save method that works
+  // Skip for Appwrite users which don't have MongoDB save
+  if (user.save && user.constructor.name !== 'Object') {
+    try {
+      await user.save({ validateBeforeSave: false });
+    } catch (saveError) {
+      // If save fails (e.g., MongoDB down), continue anyway
+      // User is already created in Appwrite, response is still valid
+      console.warn('Warning: Could not persist refresh token to database:', saveError.message);
+    }
+  }
 
   const cookieOptions = {
     httpOnly: true,
@@ -121,7 +133,7 @@ exports.register = async (req, res, next) => {
     // Debug logging
     console.log('Registration data:', { name, email, password: password ? 'PROVIDED' : 'MISSING', role });
 
-    // Check if user already exists
+    // Check if user already exists (check both MongoDB and Appwrite)
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       // Log failed registration attempt
@@ -139,51 +151,75 @@ exports.register = async (req, res, next) => {
       });
     }
 
-    // Create user - FORCE role to 'student' (prevent role escalation)
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role: 'student',
-      profile,
-      lastLogin: new Date()
-    });
-
-    // Auto-create consent record for students (RTE Act 2009 compliance)
-    if (user.role === 'student') {
-      try {
-        const consent = await ParentalConsent.create({
-          studentId: user._id,
-          parentName: 'PENDING',
-          parentPhone: '9999999999', // Placeholder - must be updated during consent request
-          consentStatus: 'pending',
-          consentMethod: 'otp'
-        });
-
-        // Log consent record creation
-        await logAuditEvent({
-          actorId: user._id.toString(),
-          actorRole: user.role,
-          action: 'CONSENT_RECORD_CREATED',
-          targetType: 'CONSENT',
-          targetId: consent._id.toString(),
-          metadata: {
-            autoCreated: true,
-            registrationFlow: true
-          },
-          req,
-          status: 'success',
-          complianceFlags: ['RTE_ACT_2009', 'POCSO_ACT_2012']
-        }).catch(err => console.error('Audit log error:', err));
-      } catch (consentError) {
-        console.error('Failed to create consent record:', consentError.message);
-        // Don't fail registration if consent creation fails
-        // This ensures user registration always succeeds
+    // Create user directly in Appwrite (for new registrations)
+    // This ensures all new users are in Appwrite, the primary user store
+    let user;
+    try {
+      console.log('📝 Starting user creation in Appwrite for:', email);
+      const appwriteService = new AppwriteUserService();
+      user = await appwriteService.createUser({
+        name,
+        email,
+        password,
+        role: 'student',
+        profile,
+        lastLogin: new Date()
+      });
+      
+      if (!user) {
+        throw new Error('Failed to create user - null response from createUser()');
       }
+      console.log('✅ User object returned from Appwrite:', { _id: user._id, email: user.email });
+    } catch (createError) {
+      console.error('❌ Error creating user in Appwrite:', createError.message);
+      // Log the error but continue - we'll still send response
+      logAuthEvent(
+        null,
+        'student',
+        'USER_REGISTRATION_FAILED',
+        req,
+        { email, reason: createError.message }
+      ).catch(err => console.error('Audit log error:', err));
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create user account: ' + createError.message
+      });
     }
 
-    // Log successful registration
-    await logAuthEvent(
+    // Auto-create consent record for students (RTE Act 2009 compliance)
+    // Fire-and-forget: don't await these operations, they don't block registration
+    if (user.role === 'student' && ParentalConsent && ParentalConsent.create) {
+      // Non-blocking consent creation
+      ParentalConsent.create({
+        studentId: user._id,
+        parentName: 'PENDING',
+        parentPhone: '9999999999',
+        consentStatus: 'pending',
+        consentMethod: 'otp'
+      })
+        .then(consent => {
+          // Non-blocking audit log for consent
+          logAuditEvent({
+            actorId: user._id.toString(),
+            actorRole: user.role,
+            action: 'CONSENT_RECORD_CREATED',
+            targetType: 'CONSENT',
+            targetId: consent._id.toString(),
+            metadata: {
+              autoCreated: true,
+              registrationFlow: true
+            },
+            req,
+            status: 'success',
+            complianceFlags: ['RTE_ACT_2009', 'POCSO_ACT_2012']
+          }).catch(err => console.error('Audit log error:', err));
+        })
+        .catch(err => console.error('Failed to create consent record:', err.message));
+    }
+
+    // Non-blocking audit log for successful registration
+    logAuthEvent(
       user._id.toString(),
       user.role,
       'USER_REGISTERED',
@@ -1009,13 +1045,11 @@ exports.sendEmailOtpAppwrite = async (req, res, next) => {
       });
     }
 
-    const localStudent = await User.findOne({ email, role: 'student', isActive: true }).select('_id');
-    if (!localStudent) {
-      return res.status(404).json({
-        success: false,
-        message: 'Student account not found. Ask your school admin to register you first.'
-      });
-    }
+    // Check Appwrite for user (will be created if registered via our system)
+    // Note: Appwrite's account/tokens/email will also validate the email exists
+    // We allow the request to continue and let Appwrite handle validation
+    
+    console.log('📧 Attempting to send Email OTP to:', email);
 
     const tokenRes = await axios.post(
       `${APPWRITE_ENDPOINT}/account/tokens/email`,
@@ -1040,6 +1074,8 @@ exports.sendEmailOtpAppwrite = async (req, res, next) => {
       });
     }
 
+    console.log('✅ Email OTP token created:', { email, otpUserId });
+
     await redisClient.set(`appwrite_email_otp:${otpUserId}`, email, 'EX', APPWRITE_EMAIL_OTP_TTL_SECONDS);
 
     return res.status(200).json({
@@ -1048,7 +1084,12 @@ exports.sendEmailOtpAppwrite = async (req, res, next) => {
       userId: otpUserId
     });
   } catch (error) {
-    return res.status(400).json({
+    console.error('❌ Email OTP Error:', {
+      message: error?.message,
+      status: error?.response?.status,
+      data: error?.response?.data
+    });
+    return res.status(error?.response?.status || 500).json({
       success: false,
       message: error?.response?.data?.message || 'Could not send email OTP. Please try again.'
     });

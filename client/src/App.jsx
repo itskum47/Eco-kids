@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
-import { loadUser } from './store/slices/authSlice';
+import { loadUser, clearLoading } from './store/slices/authSlice';
 import BottomNav from './components/layout/BottomNav';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PageLoader from './components/PageLoader';
@@ -151,7 +151,17 @@ function App() {
   }, [band]);
 
   useEffect(() => {
+    // Dispatch loadUser and add safety timeout
     dispatch(loadUser());
+    
+    // Safety timeout: if loading still true after 15 seconds, force it to false
+    // This prevents infinite loading if backend is unreachable or slow
+    const timeoutId = setTimeout(() => {
+      console.warn('LoadUser timeout - forcing isLoading to false');
+      dispatch(clearLoading());
+    }, 15000);
+
+    return () => clearTimeout(timeoutId);
   }, [dispatch]);
 
   if (isLoading) {
