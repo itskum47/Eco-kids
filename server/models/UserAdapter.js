@@ -13,6 +13,42 @@ let MongooseUser = null;
 let appwriteService = null;
 let useAppwrite = false;
 
+const isMongoConnected = () => mongoose.connection?.readyState === 1;
+
+const canUseMongo = () => Boolean(MongooseUser) && isMongoConnected();
+
+const createQueryResult = (queryOrPromise) => {
+  const isMongooseQuery = queryOrPromise && typeof queryOrPromise.exec === 'function';
+  let current = queryOrPromise;
+
+  const query = {
+    select: (fields) => {
+      if (isMongooseQuery && current?.select) {
+        current = current.select(fields);
+      }
+      return query;
+    },
+    lean: () => {
+      if (isMongooseQuery && current?.lean) {
+        current = current.lean();
+      }
+      return query;
+    },
+    populate: (...args) => {
+      if (isMongooseQuery && current?.populate) {
+        current = current.populate(...args);
+      }
+      return query;
+    },
+    exec: () => (isMongooseQuery ? current.exec() : Promise.resolve(current)),
+    then: (onFulfilled, onRejected) => query.exec().then(onFulfilled, onRejected),
+    catch: (onRejected) => query.exec().catch(onRejected),
+    finally: (onFinally) => query.exec().finally(onFinally)
+  };
+
+  return query;
+};
+
 // Try to load Mongoose User model
 try {
   MongooseUser = require('./User');
@@ -30,13 +66,12 @@ try {
 
 const UserAdapter = {
   // Statics (model methods)
-  findOne: async (filter) => {
+  findOne: (filter) => {
     try {
-      // If MongoDB is available and user prefers it
-      if (MongooseUser && !useAppwrite) {
+      // Prefer Mongo whenever it's connected so auth can access full Mongoose documents (e.g. +password).
+      if (canUseMongo()) {
         try {
-          const result = await MongooseUser.findOne(filter);
-          if (result) return result;
+          return createQueryResult(MongooseUser.findOne(filter));
         } catch (dbError) {
           console.warn('[UserAdapter] MongoDB findOne failed, falling back to Appwrite:', dbError.message);
         }
@@ -44,30 +79,36 @@ const UserAdapter = {
 
       // Fall back to Appwrite
       if (appwriteService) {
-        if (filter.email) {
-          return await appwriteService.findUserByEmail(filter.email);
-        }
-        if (filter._id) {
-          return await appwriteService.findUserById(filter._id);
-        }
-        if (filter.id) {
-          return await appwriteService.findUserById(filter.id);
-        }
-        if (filter.$or) {
-          for (const clause of filter.$or) {
-            if (clause.email) {
-              const user = await appwriteService.findUserByEmail(clause.email);
-              if (user) return user;
-            }
-            if (clause.phone || clause['profile.phone']) {
-              const phone = clause.phone || clause['profile.phone'];
-              const user = await appwriteService.findUserByPhone(phone);
-              if (user) return user;
+        const promise = (async () => {
+          if (filter.email) {
+            return await appwriteService.findUserByEmail(filter.email);
+          }
+          if (filter._id) {
+            return await appwriteService.findUserById(filter._id);
+          }
+          if (filter.id) {
+            return await appwriteService.findUserById(filter.id);
+          }
+          if (filter.$or) {
+            for (const clause of filter.$or) {
+              if (clause.email) {
+                const user = await appwriteService.findUserByEmail(clause.email);
+                if (user) return user;
+              }
+              if (clause.phone || clause['profile.phone']) {
+                const phone = clause.phone || clause['profile.phone'];
+                const user = await appwriteService.findUserByPhone(phone);
+                if (user) return user;
+              }
             }
           }
-        }
+          return null;
+        })();
+
+        return createQueryResult(promise);
       }
-      return null;
+
+      return createQueryResult(Promise.resolve(null));
     } catch (error) {
       console.error('[UserAdapter] findOne error:', error.message);
       throw error;
@@ -96,7 +137,7 @@ const UserAdapter = {
     }
   },
 
-  findById: async (id) => {
+  findById: (id) => {
     try {
       // Check if ID looks like an email (contains @)
       // This handles old JWTs that used email as the ID
@@ -104,13 +145,13 @@ const UserAdapter = {
       
       if (isEmail) {
         // If it looks like an email, find by email using findOne
-        return await module.exports.findOne({ email: id });
+        return module.exports.findOne({ email: id });
       }
 
       // Try MongoDB first
-      if (MongooseUser && !useAppwrite) {
+      if (canUseMongo()) {
         try {
-          return await MongooseUser.findById(id);
+          return createQueryResult(MongooseUser.findById(id));
         } catch (dbError) {
           console.warn('[UserAdapter] MongoDB findById failed, falling back to Appwrite:', dbError.message);
         }
@@ -118,9 +159,11 @@ const UserAdapter = {
 
       // Fall back to Appwrite
       if (appwriteService) {
-        return await appwriteService.findUserById(id);
+        const promise = appwriteService.findUserById(id);
+        return createQueryResult(promise);
       }
-      return null;
+
+      return createQueryResult(Promise.resolve(null));
     } catch (error) {
       console.error('[UserAdapter] findById error:', error.message);
       throw error;
@@ -129,8 +172,8 @@ const UserAdapter = {
 
   create: async (userData) => {
     try {
-      // If MongoDB is available, use it (better for full feature set)
-      if (MongooseUser && !useAppwrite) {
+      // Prefer Mongo whenever it's connected (better for full feature set)
+      if (canUseMongo()) {
         try {
           const user = await MongooseUser.create(userData);
           console.log('[UserAdapter] User created in MongoDB');
@@ -162,7 +205,7 @@ const UserAdapter = {
 
   updateOne: async (filter, update) => {
     try {
-      if (MongooseUser && !useAppwrite) {
+      if (canUseMongo()) {
         try {
           return await MongooseUser.updateOne(filter, update);
         } catch (dbError) {
@@ -185,7 +228,7 @@ const UserAdapter = {
 
   deleteOne: async (filter) => {
     try {
-      if (MongooseUser && !useAppwrite) {
+      if (canUseMongo()) {
         try {
           return await MongooseUser.deleteOne(filter);
         } catch (dbError) {
@@ -208,7 +251,7 @@ const UserAdapter = {
 
   countDocuments: async (filter = {}) => {
     try {
-      if (MongooseUser && !useAppwrite) {
+      if (canUseMongo()) {
         try {
           return await MongooseUser.countDocuments(filter);
         } catch (dbError) {
@@ -234,7 +277,7 @@ const UserAdapter = {
 
   // Health check
   isConnected: async () => {
-    if (MongooseUser && !useAppwrite) {
+    if (canUseMongo()) {
       try {
         const conn = mongoose.connection;
         return conn.readyState === 1; // Connected
@@ -246,6 +289,9 @@ const UserAdapter = {
   },
 
   getBackend: () => {
+    if (canUseMongo()) {
+      return 'mongodb';
+    }
     if (appwriteService && (useAppwrite || !MongooseUser)) {
       return 'appwrite';
     }
