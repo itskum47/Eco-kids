@@ -241,6 +241,43 @@ const UserSchema = new mongoose.Schema({
       default: Date.now
     }
   },
+  impactBaseline: {
+    co2: {
+      type: Number,
+      default: 0
+    },
+    water: {
+      type: Number,
+      default: 0
+    },
+    plastic: {
+      type: Number,
+      default: 0
+    },
+    energy: {
+      type: Number,
+      default: 0
+    },
+    trees: {
+      type: Number,
+      default: 0
+    },
+    sourceSurvey: {
+      showerDuration: Number,
+      transportMode: {
+        type: String,
+        enum: ['car', 'bus', 'bike', 'walk', 'other']
+      },
+      meatDaysPerWeek: {
+        type: Number,
+        min: 0,
+        max: 7
+      },
+      waterUsagePerDay: Number
+    },
+    createdAt: Date,
+    updatedAt: Date
+  },
   settings: {
     notifications: {
       email: {
@@ -284,6 +321,32 @@ const UserSchema = new mongoose.Schema({
     select: false
   },
     refreshTokenExpire: Date,
+    mfaEnabled: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    mfaSecret: {
+      type: String,
+      select: false
+    },
+    mfaPendingSecret: {
+      type: String,
+      select: false
+    },
+    backupCodes: [{
+      code: {
+        type: String,
+        select: false
+      },
+      used: {
+        type: Boolean,
+        default: false
+      },
+      usedAt: Date
+    }],
+    mfaEnabledAt: Date,
+    mfaLastUsed: Date,
   
     // Parental consent fields (DPDP Act 2023 - Section 1B)
     parentName: {

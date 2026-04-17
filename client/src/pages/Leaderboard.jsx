@@ -8,6 +8,28 @@ import GradeAdaptive from '../components/GradeAdaptive';
 import { useGradeBand } from '../hooks/useGradeBand';
 import { useTranslation } from 'react-i18next';
 
+const toSafePoints = (value) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const normalizeRanking = (ranking = {}, index = 0) => {
+  const nestedUser = ranking.user || {};
+  const points = toSafePoints(
+    ranking.ecoPoints ?? ranking.points ?? ranking.score ?? ranking.totalPoints
+  );
+
+  return {
+    ...ranking,
+    id: ranking.id || ranking._id || nestedUser.id || nestedUser._id || `lb-${index + 1}`,
+    name: ranking.name || nestedUser.name || ranking.firstName || `Player ${index + 1}`,
+    school: ranking.school || nestedUser.school || ranking.schoolName || '-',
+    grade: ranking.grade || nestedUser.grade,
+    avatar: ranking.avatar || '🧑',
+    ecoPoints: points
+  };
+};
+
 // Seedling Row
 const SeedlingRow = ({ ranking, index }) => (
   <div className="flex items-center gap-4 bg-white rounded-full p-3 pr-6 shadow-sm border-2 border-transparent hover:border-[#ffb74d] hover:-translate-y-1 transition-all mb-3">
@@ -37,7 +59,7 @@ const ExplorerRow = ({ ranking, index }) => (
       <div className="text-sm text-gray-500 truncate">{ranking.school}</div>
     </div>
     <div className="text-right">
-      <div className="font-bold text-[var(--blue)] text-lg">{ranking.ecoPoints.toLocaleString()}</div>
+      <div className="font-bold text-[var(--blue)] text-lg">{toSafePoints(ranking.ecoPoints).toLocaleString()}</div>
       <div className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Points</div>
     </div>
   </div>
@@ -57,7 +79,7 @@ const ExpertRow = ({ ranking, index }) => (
       </div>
       <div className="col-span-3 lg:col-span-4 text-right">
         <span className="font-mono font-bold text-[var(--eco-dark)] bg-green-50 px-2 py-1 rounded">
-          {ranking.ecoPoints.toLocaleString()} EP
+          {toSafePoints(ranking.ecoPoints).toLocaleString()} EP
         </span>
       </div>
     </div>
@@ -89,7 +111,7 @@ const AdaptivePodium = ({ topThree, band }) => {
               <div>
                 <div className="text-2xl mb-1">{item.data.avatar}</div>
                 <div className="font-['DM_Sans'] font-bold text-gray-900">{item.data.name}</div>
-                <div className="font-mono text-sm font-bold text-green-700">{item.data.ecoPoints.toLocaleString()} EP</div>
+                <div className="font-mono text-sm font-bold text-green-700">{toSafePoints(item.data.ecoPoints).toLocaleString()} EP</div>
               </div>
             </div>
           ))}
@@ -184,7 +206,8 @@ const Leaderboard = () => {
       
       if (response && response.data) {
         // API returns: { leaderboard: { rankings: [...] }, userPosition: {...} }
-        setRankings(response.data.leaderboard?.rankings || []);
+        const normalizedRankings = (response.data.leaderboard?.rankings || []).map((ranking, index) => normalizeRanking(ranking, index));
+        setRankings(normalizedRankings);
         
         if (isAuthenticated && response.data.userPosition) {
           setUserRank(response.data.userPosition);
@@ -347,7 +370,7 @@ const Leaderboard = () => {
 
                 {restRankings.map((ranking, index) => (
                   <GradeAdaptive
-                    key={ranking.rank || index}
+                    key={ranking.id || ranking.rank || index}
                     seedling={<SeedlingRow ranking={ranking} index={index} />}
                     explorer={<ExplorerRow ranking={ranking} index={index} />}
                     challenger={<ExpertRow ranking={ranking} index={index} />}
@@ -368,10 +391,10 @@ const Leaderboard = () => {
                   </div>
 
                   <GradeAdaptive
-                    seedling={<SeedlingRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, ecoPoints: userRank.userEcoPoints, avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
-                    explorer={<ExplorerRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: userRank.userEcoPoints, avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
-                    expert={<ExpertRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: userRank.userEcoPoints, avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
-                    fallback={<ExplorerRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: userRank.userEcoPoints, avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
+                    seedling={<SeedlingRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, ecoPoints: toSafePoints(userRank.userEcoPoints), avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
+                    explorer={<ExplorerRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: toSafePoints(userRank.userEcoPoints), avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
+                    expert={<ExpertRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: toSafePoints(userRank.userEcoPoints), avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
+                    fallback={<ExplorerRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: toSafePoints(userRank.userEcoPoints), avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
                   />
                 </div>
               )}

@@ -4,7 +4,6 @@
  */
 
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
 import { StorageService, DatabaseService } from './storage';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.ecokids.in/api/v1';

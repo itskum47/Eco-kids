@@ -387,17 +387,20 @@ export default function Topics() {
   const [selected, setSelected] = useState(null);
   const [grade, setGrade] = useState('all');
   const [cat, setCat] = useState('all');
+  const studentGrade = user?.profile?.grade ? String(user.profile.grade) : null;
+  const isStudent = user?.role === 'student';
 
   // Set initial grade filter based on student's profile grade
   useEffect(() => {
-    if (user?.profile?.grade) {
-      const studentGrade = String(user.profile.grade);
+    if (isStudent && studentGrade) {
       setGrade(studentGrade);
     }
-  }, [user?.profile?.grade]);
+  }, [isStudent, studentGrade]);
+
+  const effectiveGrade = isStudent && studentGrade ? studentGrade : grade;
 
   const filtered = TOPICS.filter(tp => {
-    const gm = grade === 'all' || tp.grade === Number(grade);
+    const gm = effectiveGrade === 'all' || tp.grade === Number(effectiveGrade);
     const cm = cat === 'all' || tp.category === cat;
     return gm && cm;
   });
@@ -424,9 +427,9 @@ export default function Topics() {
         </div>
         <h1 style={{ fontSize: 48, fontWeight: 900, color: '#1b5e20', margin: '0 0 8px' }}>📚 Eco-Topics</h1>
         <p style={{ fontSize: 18, color: '#4a6741' }}>NCERT-aligned lessons for Class 1 to 12</p>
-        {user?.profile?.grade && (
+        {isStudent && studentGrade && (
           <p style={{ fontSize: 16, color: '#2e7d32', fontWeight: 'bold', marginTop: 8 }}>
-            📌 Showing content for Class {user.profile.grade} • <button onClick={() => setGrade('all')} style={{ background: 'none', border: 'none', color: '#2e7d32', textDecoration: 'underline', cursor: 'pointer', fontSize: 16 }}>View All Classes</button>
+            📌 Showing content for your class: Class {studentGrade}
           </p>
         )}
       </div>
@@ -435,15 +438,15 @@ export default function Topics() {
 
         {/* Grade filter */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-          {GRADES.map(g => (
+          {(isStudent && studentGrade ? [studentGrade] : GRADES).map(g => (
             <button key={g} onClick={() => setGrade(g)} style={{
               padding: '6px 16px', borderRadius: 100, border: '2px solid',
-              borderColor: grade === g ? '#2e7d32' : '#c8e6c9',
-              background: grade === g ? '#2e7d32' : 'white',
-              color: grade === g ? 'white' : '#2e7d32',
+              borderColor: effectiveGrade === g ? '#2e7d32' : '#c8e6c9',
+              background: effectiveGrade === g ? '#2e7d32' : 'white',
+              color: effectiveGrade === g ? 'white' : '#2e7d32',
               fontWeight: 700, fontSize: 13, cursor: 'pointer'
             }}>
-              {g === 'all' ? 'All Grades' : `Class ${g}`}
+              {`Class ${g}`}
             </button>
           ))}
         </div>

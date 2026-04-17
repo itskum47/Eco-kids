@@ -1,0 +1,12 @@
+{
+  "name": "create-user-profile",
+  "version": "1.0.0",
+  "description": "Create user profile on registration",
+  "main": "src/main.js",
+  "engines": {
+    "node": "18.0.0"
+  },
+  "dependencies": {
+    "node-appwrite": "^14.1.0"
+  }
+}

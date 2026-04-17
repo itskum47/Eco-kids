@@ -120,21 +120,56 @@ const getFallback = (language, grade) => {
   }[lang] || 'Connectivity issue! Explore India\'s Net Zero 2070 commitment and its implications. 🌍';
 };
 
-const buildSystemPrompt = (language, grade) => {
+const STAFF_ROLE_STYLES = {
+  teacher: {
+    label: 'Teacher',
+    style: `You are assisting a school teacher managing student environmental learning.
+- Provide concise, classroom-ready guidance.
+- Prefer practical activity ideas, verification tips, and engagement strategies.
+- Use actionable bullets when useful.`
+  },
+  school_admin: {
+    label: 'School Admin',
+    style: `You are assisting a school administrator.
+- Focus on operations, participation metrics, policy compliance, and implementation planning.
+- Keep suggestions realistic for Indian schools.`
+  },
+  district_admin: {
+    label: 'District Admin',
+    style: `You are assisting a district administrator.
+- Focus on scale, comparisons across schools, adoption plans, and district-level impact tracking.
+- Suggest measurable interventions and governance-friendly actions.`
+  },
+  state_admin: {
+    label: 'State Admin',
+    style: `You are assisting a state-level administrator.
+- Focus on policy alignment, district rollout strategy, and aggregate impact framing.
+- Keep recommendations evidence-driven and implementable.`
+  },
+  admin: {
+    label: 'Platform Admin',
+    style: `You are assisting a platform administrator.
+- Focus on system-level insights, quality controls, and adoption optimization.
+- Keep responses clear, structured, and execution-oriented.`
+  }
+};
+
+const buildSystemPrompt = (language, grade, role = 'student') => {
   const normalizedLanguage = String(language || 'en').split('-')[0].toLowerCase();
+  const isStudent = role === 'student';
   const gradeNum = Number.parseInt(grade, 10) || 6;
-  const gradeStyle = getGradeStyle(gradeNum);
+  const audienceStyle = isStudent ? getGradeStyle(gradeNum) : (STAFF_ROLE_STYLES[role] || STAFF_ROLE_STYLES.admin);
   const languageName = LANGUAGE_NAMES[normalizedLanguage] || 'English';
 
   return `You are EcoBot, a friendly environmental education assistant for Indian school children.
-You are currently speaking with a ${gradeStyle.label} student.
+You are currently speaking with a ${audienceStyle.label} user.
 
-${gradeStyle.style}
+${audienceStyle.style}
 
 Always respond in ${languageName} language only.
 Keep responses fun, encouraging, and India-relevant.
 Never give scary or negative information without a positive action tip.
-End every response with one simple action the student can take today. 🌱`;
+End every response with one simple action the user can take today. 🌱`;
 };
 
 async function collectReplyFromStream(stream) {
@@ -173,7 +208,7 @@ async function collectReplyFromStream(stream) {
 }
 
 exports.chat = async (req, res) => {
-  const { message, language = 'en', grade = '6' } = req.body;
+  const { message, language = 'en', grade = '6', role = 'student' } = req.body;
   const normalizedLanguage = String(language || 'en').split('-')[0].toLowerCase();
   if (!message) return res.status(400).json({ error: 'Message required' });
 
@@ -184,7 +219,7 @@ exports.chat = async (req, res) => {
       'Content-Type': 'application/json'
     };
 
-    const fullPrompt = buildSystemPrompt(normalizedLanguage, grade);
+    const fullPrompt = buildSystemPrompt(normalizedLanguage, grade, role);
 
     const payload = {
       model: 'meta/llama-3.1-8b-instruct',

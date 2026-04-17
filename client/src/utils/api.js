@@ -1,23 +1,45 @@
 import axios from 'axios';
 
+let csrfToken = null;
+let csrfPromise = null;
+
+const getBaseURL = () => import.meta.env.VITE_API_URL || '/api/v1';
+
+const ensureCsrfToken = async () => {
+  if (csrfToken) return csrfToken;
+  if (csrfPromise) return csrfPromise;
+
+  csrfPromise = axios.get(`${getBaseURL()}/auth/csrf-token`, {
+    withCredentials: true
+  }).then((response) => {
+    csrfToken = response.data?.csrfToken || null;
+    return csrfToken;
+  }).catch(() => null).finally(() => {
+    csrfPromise = null;
+  });
+
+  return csrfPromise;
+};
+
 const getAdaptiveTimeout = () => {
   const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
-  if (!conn) return 10000;
+  if (!conn) return 30000; // Increased from 10s to 30s
 
   const isSlowNetwork = ['slow-2g', '2g', '3g'].includes(conn.effectiveType);
   if (conn.saveData || isSlowNetwork) {
-    return 18000;
+    return 40000; // Increased from 18s to 40s for slow networks
   }
 
-  return 10000;
+  return 30000; // Increased from 10s to 30s
 };
 
 // Create axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true
 });
 
 // Keep explicit name for compatibility with existing references and docs.
@@ -31,6 +53,16 @@ api.interceptors.request.use(async (config) => {
   }
 
   config.headers = config.headers || {};
+
+  const method = (config.method || 'get').toLowerCase();
+  const needsCsrf = ['post', 'put', 'patch', 'delete'].includes(method);
+  const isCsrfTokenRoute = typeof config.url === 'string' && config.url.includes('/auth/csrf-token');
+  if (needsCsrf && !isCsrfTokenRoute) {
+    const token = await ensureCsrfToken();
+    if (token) {
+      config.headers['x-csrf-token'] = token;
+    }
+  }
 
   const cached = sessionStorage.getItem('appwrite_session');
   const cachedUserId = sessionStorage.getItem('appwrite_userid');
@@ -164,6 +196,15 @@ export const habitsAPI = {
   getMyStreak: () => api.get('/v1/habits/streak')
 };
 
+export const impactCalculatorAPI = {
+  getMetrics: (period = 'month') => api.get('/v1/impact/me/metrics', { params: { period } }),
+  logDailyAction: (payload) => api.post('/v1/impact/daily-action', payload),
+  getBaseline: () => api.get('/v1/impact/baseline'),
+  setBaseline: (payload) => api.post('/v1/impact/baseline', payload),
+  getComparison: (period = 'month') => api.get('/v1/impact/comparison', { params: { period } }),
+  getTrend: (months = 6) => api.get('/v1/impact/trend', { params: { months } })
+};
+
 export const activityAPI = {
   submitActivity: (activityData) => {
     const { idempotencyKey, ...data } = activityData;
@@ -178,6 +219,9 @@ export const activityAPI = {
   appealSubmission: (submissionId, payload) => api.post(`/v1/activity/${submissionId}/appeal`, payload),
   resolveAppeal: (submissionId, payload) => api.put(`/v1/activity/${submissionId}/appeal/resolve`, payload)
 };
+
+// Backward compatibility: some legacy pages call api.activity.*
+api.activity = activityAPI;
 
 export const usersAPI = {
   getUsers: (params) => api.get('/v1/users', { params }),

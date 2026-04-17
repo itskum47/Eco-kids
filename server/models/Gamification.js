@@ -26,12 +26,50 @@ const badgeSchema = new mongoose.Schema({
   criteria: {
     type: {
       type: String,
-      enum: ['points', 'quizzes', 'games', 'experiments', 'streak', 'special'],
+      enum: [
+        'points',
+        'quizzes',
+        'games',
+        'experiments',
+        'streak',
+        'special',
+        'water_saved',
+        'plastic_reduced',
+        'trees_planted',
+        'cleanup_events',
+        'quiz_mastery',
+        'active_days',
+        'class_rank',
+        'seasonal_activity',
+        'activities_count'
+      ],
       required: true
     },
     value: {
       type: Number,
       required: true
+    },
+    minAverageScore: {
+      type: Number,
+      min: 0,
+      max: 100
+    },
+    activityTypes: [{
+      type: String
+    }],
+    seasonMonths: [{
+      type: Number,
+      min: 1,
+      max: 12
+    }],
+    windowDays: {
+      type: Number,
+      min: 1
+    },
+    rankScope: {
+      type: String,
+      enum: ['class', 'school'],
+      default: 'class'
     },
     timeframe: {
       type: String,

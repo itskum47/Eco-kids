@@ -1,106 +1,89 @@
 <div align="center">
 
-# EcoKids India
+# EcoKids India V2
 
-### Learn. Play. Act for the Planet.
+### Learn Better. Live Greener. Build Real Climate Habits.
 
-A multilingual, gamified environmental learning platform for Indian schools and colleges.
+A multilingual, gamified environmental education platform for schools and colleges in India.
 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](docker-compose.yml)
 [![License](https://img.shields.io/badge/License-MIT-3b82f6?style=for-the-badge)](LICENSE)
 
 </div>
 
-> Pre-Launch Pilot: This platform is currently in pilot rollout mode with partner institutions. Production-scale deployment is pending pilot validation and compliance sign-off.
+> Status: Pre-launch pilot. Core platform is production-oriented, with rollout gated by partner validation and compliance sign-off.
 
-## Why EcoKids India
-Most climate education tools are either too generic, too passive, or too disconnected from classroom reality. EcoKids India turns environmental learning into daily action loops:
+## Why This Project Exists
+EcoKids India converts environmental education from passive reading into measurable action:
 
-- students complete activities, quizzes, and projects
-- teachers verify evidence and guide quality
-- schools track measurable participation
-- administrators monitor adoption and impact
+- Students complete real tasks with evidence
+- Teachers verify quality and authenticity
+- Schools track participation and impact
+- Admins monitor compliance and adoption
 
-The result is a practical system that combines pedagogy, behavior design, and accountability.
+The result is a practical loop of learning, action, and accountability.
 
-## What Makes It Different
+## What Makes It Strong
 
-### 1. Action-First Learning
-- activity submissions with evidence photos
-- teacher approval and feedback workflows
-- points, streaks, levels, and badges
+### 1. Real-World Action Workflow
+- Activity submissions with media evidence
+- Teacher verification and appeal flow
+- Points, badges, levels, and streaks
 
-### 2. India-Ready Localization
-- support for 10 Indian languages
-- grade-adaptive UX for different age bands
-- offline-safe flows for unstable connectivity
+### 2. India-First Experience
+- Support for 10 Indian languages
+- School governance layers (school, district, state)
+- Mobile-aware and low-connectivity-friendly flows
 
-### 3. Compliance-Aware Architecture
-- parental consent enforcement for minors via route-level middleware
-- immutable audit-style logging for sensitive actions
-- school-level privacy controls and governance settings
+### 3. Governance and Safety
+- Role-based access controls across platform surfaces
+- Consent-aware student route protection
+- Audit-ready operational and compliance documentation
 
-### 4. Multi-Tenant by Design
-- school isolation enforced in API middleware
-- admin surfaces at school, district, and state layers
-- leaderboard and reporting boundaries across institutional levels
+### 4. Scalable Engineering Base
+- Web + mobile clients
+- Queue-backed backend workflows
+- Clean service-oriented backend layout
 
-## New Capabilities (Latest Build)
+## Architecture Snapshot
 
-### Consent Hardening
-- minors are blocked from protected learning routes unless parental consent is approved
-- consent checks use cache-backed middleware for performance
-
-### Leaderboard Privacy
-- anonymized leaderboard identities for safer public ranking views
-- no raw email exposure in leaderboard payloads
-
-### Appeal Workflow
-- students can dispute rejected submissions
-- teachers can resolve appeals with reasoned decisions
-
-### Eco-Anxiety Sensitivity Layer
-- content can be marked as standard, sensitive, or distressing
-- framing statements and action items reduce doom fatigue
-- school settings can cap max sensitivity level
-
-### Teacher Verification Anomaly Detection
-- rate limits for approval bursts
-- audit log model for approval/rejection actions
-- suspicious approval ratio endpoint for state admins
-
-### Undergraduate Track (College Experience)
-- campus chapter model with missions and member voting
-- research track submissions with GPS, photo evidence, and structured write-up
-- faculty advisor role support
-- career pathways component mapping eco-badges to green careers
+```text
+Web (React/Vite) + Mobile (Expo)
+        |
+        v
+API Layer (Node.js/Express)
+        |
+        +--> MongoDB (core data)
+        +--> Redis + BullMQ (cache/queues)
+        +--> Appwrite integrations (functions/auth workflows)
+        +--> Monitoring (Prometheus/Grafana)
+```
 
 ## Tech Stack
 
-| Layer | Tech |
+| Layer | Technologies |
 |---|---|
-| Frontend | React 18, Vite, Tailwind CSS, Redux Toolkit, React Query |
-| Backend | Node.js, Express, JWT, BullMQ |
-| Database | MongoDB + Mongoose |
-| Caching/Queues | Redis + BullMQ workers |
-| Monitoring | Prometheus, Alertmanager, Grafana |
-| Deployment | Docker, Nginx, Kubernetes (Helm) |
+| Frontend | React 18, Vite, Tailwind CSS, Redux Toolkit, React Query, i18next |
+| Backend | Node.js, Express, JWT, Mongoose |
+| Data | MongoDB, Redis |
+| Async | BullMQ workers |
+| Infra | Node.js services, Redis queues, monitoring stack |
+| Integrations | Appwrite, Cloudinary, external AI services |
 
-## Repository Structure
+## Repository Layout
 
 ```text
 ecokids-india/
-├── client/                 # Frontend app (React + Vite)
-├── server/                 # Backend API (Express + Mongoose)
-├── mobile/                 # Mobile client
-├── docs/                   # Product + operations docs
-├── monitoring/             # Prometheus/Grafana configs
-├── k8s/                    # Helm chart + manifests
-├── docker-compose.yml      # Local stack
-└── README.md
+├── client/                    # Web app
+├── server/                    # API and backend services
+├── mobile/                    # Expo React Native app
+├── appwrite-functions/        # Appwrite cloud functions
+├── docs/                      # Product + engineering documentation
+│   └── compliance/            # Security/compliance/governance docs
+├── scripts/                   # Utility and maintenance scripts
+└── monitoring/                # Prometheus/alerting configs
 ```
 
 ## Quick Start
@@ -108,90 +91,68 @@ ecokids-india/
 ### Prerequisites
 - Node.js 18+
 - npm 9+
-- MongoDB (local or Atlas)
-- Redis (for cache and queue features)
+- MongoDB
+- Redis
 
-### 1. Install dependencies
+### Install
 
 ```bash
 npm install
 cd server && npm install
 cd ../client && npm install
+cd ..
 ```
 
-### 2. Configure environment
-Create your server env file at server/.env with at least:
+### Configure
+Create `server/.env` with required values (sample minimum):
 
 ```bash
-MONGODB_URI=mongodb://localhost:27017/ecokids-india
-JWT_SECRET=replace-with-a-long-random-secret
+MONGODB_URI=mongodb://localhost:27017/ecokids
+JWT_SECRET=replace-with-strong-secret
 PORT=5001
 NODE_ENV=development
 REDIS_URL=redis://localhost:6379
 ```
 
-### 3. Run in development
+### Run
 
 ```bash
 npm run dev
 ```
 
-This runs backend and frontend concurrently.
-
-### 4. Optional seed
-
-```bash
-npm run seed
-```
-
-## Useful Commands
+## Core Commands
 
 ```bash
 npm run dev            # run server + client
+npm run server:dev     # run backend dev mode
+npm run client:dev     # run frontend dev mode
 npm run build          # build frontend
-npm run server         # run backend only
-npm run client         # run frontend only
-npm run check:queries  # query safety checks
+npm run seed           # seed backend data
+npm run check:queries  # validate query safety scripts
 ```
 
-## Core API Areas (v1)
+## Key Documentation
 
-- auth and identity
-- consent and privacy
-- activities and verification
-- quizzes and lessons
-- leaderboards and gamification
-- school, district, and state administration
-- content reporting and moderation
-- campus chapters and research track
-
-## Security and Compliance Snapshot
-
-| Area | Current Status |
-|---|---|
-| DPDP Act 2023 | Implemented at route-level for protected student flows; final legal sign-off pending |
-| RTE-aligned controls | Implemented in onboarding and student governance flows |
-| RBAC | Implemented across student, teacher, faculty advisor, and admin roles |
-| Auditability | Action logs and approval audit trails implemented |
-| Data boundaries | School isolation middleware active in scoped routes |
-
-## Demo and Operations Docs
-
-- [DEMO_CREDENTIALS.md](DEMO_CREDENTIALS.md)
+### Root essentials
 - [PRODUCTION_RUNBOOK.md](PRODUCTION_RUNBOOK.md)
-- [COMPLIANCE_CHECKLIST.md](COMPLIANCE_CHECKLIST.md)
-- [docs/DEMO_README.md](docs/DEMO_README.md)
+- [DEMO_CREDENTIALS.md](DEMO_CREDENTIALS.md)
+- [SCHOOL_ONBOARDING.md](SCHOOL_ONBOARDING.md)
+- [CHANGELOG.md](CHANGELOG.md)
+
+### Technical docs
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/API_SPECIFICATION.md](docs/API_SPECIFICATION.md)
+- [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md)
 - [docs/RUNBOOK.md](docs/RUNBOOK.md)
 
-## Contributing
-
-1. Create a feature branch
-2. Make focused commits
-3. Run build and tests locally
-4. Open a PR with scope, risk, and verification notes
+### Compliance docs
+- [docs/compliance/COMPLIANCE_CHECKLIST.md](docs/compliance/COMPLIANCE_CHECKLIST.md)
+- [docs/compliance/SECURITY_COMPLIANCE.md](docs/compliance/SECURITY_COMPLIANCE.md)
+- [docs/compliance/DISASTER_RECOVERY_PLAN.md](docs/compliance/DISASTER_RECOVERY_PLAN.md)
+- [docs/compliance/PARENTAL_CONSENT_SYSTEM_SPEC.md](docs/compliance/PARENTAL_CONSENT_SYSTEM_SPEC.md)
 
 ## License
 MIT
 
 ---
-Built for classrooms, designed for real-world climate action.
+Built for classrooms that want outcomes, not just slides.

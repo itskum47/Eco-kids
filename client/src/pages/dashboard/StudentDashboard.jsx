@@ -25,6 +25,17 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  const lightPageVars = {
+    '--bg': '#f8fafc',
+    '--s1': '#ffffff',
+    '--s2': '#f8fafc',
+    '--b1': '#e2e8f0',
+    '--b2': '#cbd5e1',
+    '--t1': '#0f172a',
+    '--t2': '#475569',
+    '--t3': '#64748b'
+  };
+
   useEffect(() => {
     const fetchGamification = async () => {
       try {
@@ -60,7 +71,7 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--bg)] flex flex-col pt-16">
+      <div className="min-h-screen bg-[var(--bg)] flex flex-col pt-16" style={lightPageVars}>
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center w-full max-w-[1020px] px-6">
@@ -98,7 +109,7 @@ const StudentDashboard = () => {
   const co2Prevented = 85;
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] pb-24 md:pb-10">
+    <div className="min-h-screen bg-[var(--bg)] pb-24 md:pb-10" style={lightPageVars}>
       <Navbar />
       <SeasonalEventBanner />
       <Onboarding isOpen={showOnboarding} onComplete={() => setShowOnboarding(false)} />
@@ -233,6 +244,9 @@ const StudentDashboard = () => {
                 <div className="flex flex-col gap-3">
                   <Link to="/submit-activity" className="btn-primary w-full shadow-[0_0_20px_rgba(108,71,255,0.2)] hover:shadow-[0_0_30px_rgba(108,71,255,0.4)]">
                     📸 Log Activity
+                  </Link>
+                  <Link to="/dashboard/trees" className="btn-primary w-full shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]">
+                    🌱 Trees NEW
                   </Link>
                   <Link to="/leaderboard" className="btn-ghost w-full">
                     🏆 View Leaderboard

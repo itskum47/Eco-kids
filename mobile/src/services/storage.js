@@ -4,6 +4,7 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import * as SQLite from 'expo-sqlite';
 
 const DB_NAME = 'ecokids.db';
@@ -16,7 +17,7 @@ export const StorageService = {
   // Authentication
   setAuthToken: async (token) => {
     try {
-      await AsyncStorage.setItem('authToken', token);
+      await SecureStore.setItemAsync('authToken', token);
       return true;
     } catch (error) {
       console.error('[StorageService] Error setting auth token:', error);
@@ -26,7 +27,7 @@ export const StorageService = {
 
   getAuthToken: async () => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      const token = await SecureStore.getItemAsync('authToken');
       return token;
     } catch (error) {
       console.error('[StorageService] Error getting auth token:', error);
@@ -36,7 +37,7 @@ export const StorageService = {
 
   clearAuthToken: async () => {
     try {
-      await AsyncStorage.removeItem('authToken');
+      await SecureStore.deleteItemAsync('authToken');
       return true;
     } catch (error) {
       console.error('[StorageService] Error clearing auth token:', error);

@@ -1,0 +1,53 @@
+speciesId,scientificName,commonNameEn,commonNameHi,region,nativeStates,co2AbsorptionPerYear,matureHeight,waterNeeds,sunlight,soilType,description
+himalayan-deodar-001,Cedrus deodara,Deodar,Deodar,himalayan,"Himachal Pradesh|Uttarakhand",18,40,medium,full,well-draining loam,Evergreen conifer suited for high altitude.
+himalayan-oak-002,Quercus semicarpifolia,Himalayan Oak,Banjh,himalayan,"Uttarakhand|Himachal Pradesh",25,25,medium,full,loamy,Native broadleaf important for mountain biodiversity.
+himalayan-rhododendron-003,Rhododendron arboreum,Rhododendron,Buransh,himalayan,"Sikkim|Arunachal Pradesh",12,12,medium,partial,acidic loam,Flowering native species for mountain ecosystems.
+himalayan-walnut-004,Juglans regia,Walnut,Akhrot,himalayan,"Jammu and Kashmir|Himachal Pradesh",20,20,medium,full,deep loam,Edible nut tree with solid canopy.
+himalayan-apple-005,Malus domestica,Apple,Seb,himalayan,"Himachal Pradesh|Uttarakhand",15,8,medium,full,well-draining loam,Fruit tree adapted to cooler climates.
+himalayan-ash-006,Fraxinus floribunda,Himalayan Ash,Angu,himalayan,"Uttarakhand|Sikkim",22,24,medium,full,loam,Fast-growing deciduous species.
+himalayan-silveroak-007,Grevillea robusta,Silver Oak,Silver Oak,himalayan,"Uttarakhand|Himachal Pradesh",19,30,medium,full,well-draining,Shade and timber value in hill regions.
+himalayan-birch-008,Betula utilis,Birch,Bhojpatra,himalayan,"Uttarakhand|Ladakh",16,15,medium,full,mountain soil,High-altitude culturally significant tree.
+coastal-coconut-009,Cocos nucifera,Coconut,Naariyal,coastal,"Kerala|Tamil Nadu|Goa",8,25,high,full,sandy loam,Coastal palm with food and livelihood value.
+coastal-mangrove-010,Avicennia alba,Mangrove,Chak keora,coastal,"West Bengal|Odisha",25,10,high,full,saline mud,Coastal defense and fish nursery habitat.
+coastal-casuarina-011,Casuarina equisetifolia,Casuarina,Jhau,coastal,"Odisha|Andhra Pradesh|Tamil Nadu",17,20,low,full,sandy,Windbreak species for coastlines.
+coastal-pongamia-012,Millettia pinnata,Pongamia,Karanj,coastal,"Maharashtra|Kerala|Andhra Pradesh",18,15,low,full,well-draining,Nitrogen-fixing multipurpose tree.
+coastal-neem-013,Azadirachta indica,Neem,Neem,coastal,"Gujarat|Maharashtra|Tamil Nadu",21,18,low,full,well-draining,Drought-tolerant medicinal tree.
+coastal-teak-014,Tectona grandis,Teak,Sagwan,coastal,"Maharashtra|Odisha|Karnataka",23,30,medium,full,deep loam,High-value timber species.
+coastal-mango-015,Mangifera indica,Mango,Aam,coastal,"Maharashtra|Goa|Kerala",19,20,medium,full,loam,Popular fruit tree with dense canopy.
+coastal-jackfruit-016,Artocarpus heterophyllus,Jackfruit,Kathal,coastal,"Kerala|Karnataka|Tamil Nadu",20,20,medium,full,rich loam,Large fruit tree with good carbon storage.
+desert-neem-017,Azadirachta indica,Neem,Neem,desert,"Rajasthan",21,18,low,full,sandy loam,Heat and drought tolerant.
+desert-khejri-018,Prosopis cineraria,Khejri,Khejri,desert,"Rajasthan|Gujarat",14,10,low,full,sandy,Critical arid-land species.
+desert-acacia-019,Acacia nilotica,Acacia,Babul,desert,"Rajasthan|Gujarat",16,12,low,full,sandy loam,Soil-binding thorny species.
+desert-datepalm-020,Phoenix dactylifera,Date Palm,Khajoor,desert,"Rajasthan|Gujarat",7,18,low,full,sandy,Arid fruit palm.
+desert-babul-021,Acacia arabica,Babul,Kikar,desert,"Rajasthan|Haryana",18,12,low,full,sandy loam,Hardy dryland species.
+desert-aonla-022,Emblica officinalis,Aonla,Amla,desert,"Rajasthan|Madhya Pradesh",15,8,low,full,well-draining,Medicinal fruit tree.
+desert-ghaf-023,Prosopis cineraria,Ghaf,Ghaf,desert,"Rajasthan",21,10,low,full,sandy,Low water survival tree.
+forest-sal-024,Shorea robusta,Sal,Sal,forest,"Madhya Pradesh|Jharkhand|Chhattisgarh",28,35,medium,full,well-draining,Keystone forest canopy tree.
+forest-teak-025,Tectona grandis,Teak,Sagwan,forest,"Madhya Pradesh|Odisha",23,30,medium,full,deep loam,Major timber species.
+forest-deodar-026,Cedrus deodara,Deodar,Deodar,forest,"Uttarakhand|Himachal Pradesh",18,40,medium,full,mountain loam,Evergreen species with carbon value.
+forest-shisham-027,Dalbergia sissoo,Shisham,Shisham,forest,"Punjab|Uttar Pradesh|Bihar",26,20,medium,full,alluvial soil,Nitrogen-fixing hardwood.
+forest-peepal-028,Ficus religiosa,Peepal,Peepal,forest,"Madhya Pradesh|Uttar Pradesh",25,25,medium,full,loamy,Large canopy oxygen-rich foliage.
+forest-banyan-029,Ficus benghalensis,Banyan,Bargad,forest,"Madhya Pradesh|Maharashtra",24,20,medium,full,loamy,Sacred and habitat-rich tree.
+forest-mango-030,Mangifera indica,Mango,Aam,forest,"Madhya Pradesh|Chhattisgarh",19,20,medium,full,loam,Fruit and shade tree.
+forest-bamboo-031,Bambusa bambos,Bamboo,Baans,forest,"Assam|Odisha|Chhattisgarh",35,15,medium,full,well-draining,Very high annual CO2 uptake.
+forest-acacia-032,Acacia catechu,Acacia,Khair,forest,"Jharkhand|Madhya Pradesh",16,12,low,full,rocky loam,Dry forest hardy species.
+forest-eucalyptus-033,Eucalyptus globulus,Eucalyptus,Nilgiri,forest,"Karnataka|Tamil Nadu",21,30,medium,full,well-draining,Fast-growing but water management needed.
+forest-tamarind-034,Tamarindus indica,Tamarind,Imli,forest,"Madhya Pradesh|Chhattisgarh",17,18,low,full,deep loam,Long-lived fruit tree.
+forest-neem-035,Azadirachta indica,Neem,Neem,forest,"Madhya Pradesh|Chhattisgarh",21,18,low,full,well-draining,Medicinal and resilient.
+forest-arjun-036,Terminalia arjuna,Arjun,Arjun,forest,"Odisha|Madhya Pradesh",20,25,medium,full,riverine alluvial,Supports riparian ecology.
+forest-ashoka-037,Saraca asoca,Ashoka,Ashok,forest,"Odisha|Jharkhand",18,10,medium,partial,moist loam,Culturally significant flowering tree.
+forest-mahua-038,Madhuca longifolia,Mahua,Mahua,forest,"Madhya Pradesh|Chhattisgarh",19,20,medium,full,dry deciduous soil,Community livelihood tree.
+urban-neem-039,Azadirachta indica,Neem,Neem,urban,"Delhi|Maharashtra|Karnataka",21,18,low,full,urban loam,Pollution resistant urban tree.
+urban-gulmohar-040,Delonix regia,Gulmohar,Gulmohar,urban,"Delhi|Maharashtra",15,12,medium,full,well-draining,Flowering avenue tree.
+urban-ashoka-041,Saraca asoca,Ashoka,Ashok,urban,"Karnataka|Maharashtra",18,10,medium,partial,loam,Compact ornamental species.
+urban-peepal-042,Ficus religiosa,Peepal,Peepal,urban,"Delhi|Uttar Pradesh",25,25,medium,full,loam,Strong air-quality support.
+urban-banyan-043,Ficus benghalensis,Banyan,Bargad,urban,"Maharashtra|Karnataka",24,20,medium,full,loam,Large shade tree for parks.
+urban-mango-044,Mangifera indica,Mango,Aam,urban,"Maharashtra|Gujarat",19,20,medium,full,loam,Urban fruit and shade support.
+urban-amaltaas-045,Cassia fistula,Amaltaas,Amaltas,urban,"Delhi|Karnataka",16,12,low,full,well-draining,Seasonal flowering street tree.
+urban-jamun-046,Syzygium cumini,Jamun,Jamun,urban,"Maharashtra|Uttar Pradesh",17,18,medium,full,loamy,Fruit tree with urban tolerance.
+urban-chinar-047,Platanus orientalis,Chinar,Chinar,urban,"Jammu and Kashmir|Delhi",22,30,medium,full,alluvial,Deciduous shade canopy tree.
+urban-arjun-048,Terminalia arjuna,Arjun,Arjun,urban,"Delhi|Maharashtra",20,25,medium,full,riverine loam,Good avenue and waterfront species.
+urban-pipal-049,Ficus religiosa,Pipal,Peepal,urban,"Delhi|Rajasthan",25,25,medium,full,loam,Air purification value in cities.
+urban-deodar-050,Cedrus deodara,Deodar,Deodar,urban,"Himachal Pradesh|Delhi",18,35,medium,full,well-draining,Evergreen visual barrier tree.
+urban-bamboo-051,Bambusa bambos,Bamboo,Baans,urban,"Karnataka|Maharashtra",35,15,medium,full,well-draining,Fast-growing screen and carbon sink.
+urban-rain-tree-052,Samanea saman,Rain Tree,Samanea,urban,"Karnataka|Tamil Nadu",26,25,medium,full,deep loam,Large shade tree for campuses.

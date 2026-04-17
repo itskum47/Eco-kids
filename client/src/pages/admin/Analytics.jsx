@@ -167,7 +167,7 @@ const Analytics = () => {
     return (
       <motion.div
         whileHover={{ scale: 1.02 }}
-        className="bg-[var(--s1)] rounded-xl shadow-lg p-6 border-l-4 border-blue-500"
+        className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500"
       >
         <div className="flex items-center justify-between">
           <div>
@@ -229,7 +229,7 @@ const Analytics = () => {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Growth Chart */}
-        <div className="bg-[var(--s1)] rounded-xl shadow-lg p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">User Growth Trend</h2>
             <div className="flex items-center space-x-2">
@@ -251,7 +251,7 @@ const Analytics = () => {
         </div>
 
         {/* Content Engagement */}
-        <div className="bg-[var(--s1)] rounded-xl shadow-lg p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Content Engagement</h2>
             <button className="p-2 text-gray-400 hover:text-gray-600">
@@ -269,7 +269,7 @@ const Analytics = () => {
       </div>
 
       {/* Content Performance */}
-      <div className="bg-[var(--s1)] rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-6">Content Performance</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {contentStats.map((stat, index) => {
@@ -291,7 +291,7 @@ const Analytics = () => {
       {/* Top Content and Demographics */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Performing Content */}
-        <div className="bg-[var(--s1)] rounded-xl shadow-lg p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Performing Content</h2>
           <div className="space-y-4">
             {topContent.map((content, index) => (
@@ -315,7 +315,7 @@ const Analytics = () => {
         </div>
 
         {/* User Demographics */}
-        <div className="bg-[var(--s1)] rounded-xl shadow-lg p-6">
+        <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">User Demographics</h2>
           
           {/* Grades Distribution */}
@@ -367,7 +367,7 @@ const Analytics = () => {
       </div>
 
       {/* Real-time Activity */}
-      <div className="bg-[var(--s1)] rounded-xl shadow-lg p-6">
+      <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Real-time Activity</h2>
           <div className="flex items-center space-x-2">

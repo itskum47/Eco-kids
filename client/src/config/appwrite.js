@@ -30,6 +30,30 @@ export const client = {
 };
 
 export const account = {
+  async createEmailToken(email) {
+    const payload = {
+      userId: 'unique()',
+      email: String(email || '').trim().toLowerCase()
+    };
+
+    return request('/account/tokens/email', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
+  async createSessionFromEmailToken(userId, secret) {
+    const payload = {
+      userId,
+      secret: String(secret || '').trim()
+    };
+
+    return request('/account/sessions/token', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  },
+
   async getSession(sessionId) {
     if (sessionId !== 'current') {
       throw new Error('Only current Appwrite session lookup is supported');

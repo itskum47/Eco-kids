@@ -101,7 +101,7 @@ const getAllowedOrigins = () => {
       ? process.env.ALLOWED_ORIGINS.split(',')
       : [];
   }
-  return ['http://localhost:5173', 'http://localhost:3000'];
+  return ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'];
 };
 
 app.use(cors({
@@ -271,6 +271,7 @@ app.use('/api/v1/campus-chapters', require('./routes/campusChapters'));
 app.use('/api/v1/environmental-lessons', require('./routes/environmentalLessons'));
 app.use('/api/v1/eco-points', require('./routes/ecoPoints'));
 app.use('/api/v1/impact', require('./routes/impact'));
+app.use('/api/v1/trees', require('./routes/treeVerification'));
 app.use('/api/v1/habits', require('./routes/habits'));
 app.use('/api/v1/missions', require('./routes/missions'));
 
@@ -286,7 +287,7 @@ app.use('/api/v1/translate', require('./routes/translate'));
 app.use('/api/v1/activity', protect, schoolIsolation, require('./routes/activity'));  // Phase 6: School isolation
 
 // Phase 5: Social Proof Activity Feed
-app.use('/api/v1', require('./routes/feedRoutes'));
+app.use('/api/v1/feed', require('./routes/feedRoutes'));
 
 // Feature 8: Mobile App Integration
 app.use('/api/v1/mobile', require('./routes/mobile'));

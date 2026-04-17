@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { apiRequest } from '../../utils/api';
 
 const DistrictAdminSchools = () => {
     const [schools, setSchools] = useState([]);
@@ -9,9 +9,9 @@ const DistrictAdminSchools = () => {
     useEffect(() => {
         const fetchSchools = async () => {
             try {
-                const response = await axios.get('/api/district-admin/schools');
-                if (response.data.success) {
-                    setSchools(response.data.data);
+                const response = await apiRequest('GET', '/district-admin/schools');
+                if (response.success) {
+                    setSchools(response.data);
                 }
             } catch (err) {
                 setError(err.response?.data?.message || 'Error fetching school network data');

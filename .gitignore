@@ -62,3 +62,9 @@ Test*.jsx
 TestApp.jsx
 TestPage.jsx
 test-app.jsx
+
+# MongoDB artifacts
+.local/mongodb/
+.local/
+mongo_data/
+WiredTiger*

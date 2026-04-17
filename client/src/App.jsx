@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
-import { loadUser } from './store/slices/authSlice';
+import { loadUser, clearLoading } from './store/slices/authSlice';
 import BottomNav from './components/layout/BottomNav';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import PageLoader from './components/PageLoader';
@@ -56,6 +56,8 @@ const StateAdminImpact = React.lazy(() => import('./pages/state-admin/StateAdmin
 const EnvironmentalLessonsPage = React.lazy(() => import('./pages/EnvironmentalLessonsPage'));
 const LessonDetail = React.lazy(() => import('./pages/LessonDetail'));
 const EnvironmentalImpactPage = React.lazy(() => import('./pages/EnvironmentalImpactPage'));
+const MyEcoImpactPage = React.lazy(() => import('./pages/MyEcoImpactPage'));
+const TreeManagement = React.lazy(() => import('./pages/TreeManagement'));
 const HabitTrackerPage = React.lazy(() => import('./pages/HabitTrackerPage'));
 const CompetitionPage = React.lazy(() => import('./pages/CompetitionPage'));
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
@@ -149,7 +151,17 @@ function App() {
   }, [band]);
 
   useEffect(() => {
+    // Dispatch loadUser and add safety timeout
     dispatch(loadUser());
+    
+    // Safety timeout: if loading still true after 15 seconds, force it to false
+    // This prevents infinite loading if backend is unreachable or slow
+    const timeoutId = setTimeout(() => {
+      console.warn('LoadUser timeout - forcing isLoading to false');
+      dispatch(clearLoading());
+    }, 15000);
+
+    return () => clearTimeout(timeoutId);
   }, [dispatch]);
 
   if (isLoading) {
@@ -216,6 +228,8 @@ function App() {
                 <Route path="/environmental-lessons" element={<EnvironmentalLessonsPage />} />
                 <Route path="/environmental-lessons/:id" element={<LessonDetail />} />
                 <Route path="/environmental-impact" element={<ProtectedRoute><EnvironmentalImpactPage /></ProtectedRoute>} />
+                <Route path="/my-eco-impact" element={<ProtectedRoute><MyEcoImpactPage /></ProtectedRoute>} />
+                <Route path="/dashboard/trees" element={<ProtectedRoute roles={['student']}><TreeManagement /></ProtectedRoute>} />
                 <Route path="/sdg-impact" element={<ProtectedRoute><SDGImpactPage /></ProtectedRoute>} />
                 <Route path="/government-dashboard" element={<ProtectedRoute><GovernmentDashboardPage /></ProtectedRoute>} />
                 <Route path="/habit-tracker" element={<ProtectedRoute><HabitTrackerPage /></ProtectedRoute>} />
@@ -254,7 +268,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/qr-login" element={<QRLogin />} />
                 <Route path="/qr-login-page" element={<QRLoginPage />} />
-                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><RoleRedirect /></ProtectedRoute>} />
                 <Route path="/role-redirect" element={<ProtectedRoute><RoleRedirect /></ProtectedRoute>} />
                 <Route path="/student-dashboard" element={<ProtectedRoute roles={['student']}><StudentDashboard /></ProtectedRoute>} />
                 <Route path="/student/profile" element={<ProtectedRoute roles={['student']}><StudentProfile /></ProtectedRoute>} />

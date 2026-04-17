@@ -1,5 +1,21 @@
 # 🎯 EcoKids Conference Demo Credentials
 
+## ⚠️ Local Dev Note (Important)
+
+If you recently ran `node server/scripts/seed-demo-users.js`, the credentials below may not exist in your current local database.
+
+Use these verified local credentials instead:
+
+| Email                      | Password      | Role         |
+|---------------------------|---------------|--------------|
+| state.admin@ecokids.in    | State@123     | State Admin  |
+| district.admin@ecokids.in | District@123  | District Admin |
+| admin@dps-del.ecokids.in  | Admin@123     | School Admin |
+| teacher1@dps-del.ecokids.in | Teacher@123 | Teacher      |
+| student.g6a@dps-del.ecokids.in | EcoKids@123 | Student   |
+
+If you want to use the `*.demo` accounts in this file, seed them specifically with the conference demo script after fixing the script's data mismatch.
+
 ## Demo Accounts
 
 All accounts use password: **`Demo@123`**

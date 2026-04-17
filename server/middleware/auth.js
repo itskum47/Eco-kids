@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const User = require('../models/UserAdapter'); // Use UserAdapter for MongoDB → Appwrite fallback
 
 // Protect routes
 exports.protect = async (req, res, next) => {
@@ -26,7 +26,7 @@ exports.protect = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Get user from database
+    // Get user from database (UserAdapter tries MongoDB first, falls back to Appwrite)
     req.user = await User.findById(decoded.id).select('-password');
 
     if (!req.user) {
@@ -79,7 +79,7 @@ exports.optionalAuth = async (req, res, next) => {
   if (token) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select('-password');
+      req.user = await User.findById(decoded.id).select('-password'); // Uses UserAdapter fallback
     } catch (error) {
       // Token is invalid, but that's okay for optional auth
       req.user = null;
