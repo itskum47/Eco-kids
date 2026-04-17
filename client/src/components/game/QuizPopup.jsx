@@ -11,11 +11,11 @@ const QuizPopup = ({ question, onComplete }) => {
 
   const resultLabel = useMemo(() => {
     if (status === 'correct') {
-      return t('gameHub.ui.correctReward');
+      return t('gameHub.correctReward');
     }
 
     if (status === 'wrong') {
-      return t('gameHub.ui.correctAnswer');
+      return t('gameHub.correctAnswer');
     }
 
     return '';
@@ -58,7 +58,7 @@ const QuizPopup = ({ question, onComplete }) => {
     >
       <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-emerald-700">
         <span>🧠</span>
-        <span>{t('gameHub.ui.quizCheckpoint')}</span>
+        <span>{t('gameHub.quizCheckpoint')}</span>
       </div>
       <h3 className="mb-5 text-xl font-black leading-snug text-slate-900">
         {t(question.promptKey, { defaultValue: question.prompt })}
@@ -96,7 +96,7 @@ const QuizPopup = ({ question, onComplete }) => {
             <div className="text-emerald-300">+10 EcoCoins!</div>
           ) : (
             <div className="text-rose-200">
-              {t('gameHub.ui.explanation')}: {t(question.explanationKey, { defaultValue: question.explanation })}
+              {t('gameHub.explanation')}: {t(question.explanationKey, { defaultValue: question.explanation })}
             </div>
           )}
         </div>

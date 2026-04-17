@@ -74,14 +74,17 @@ api.interceptors.request.use(async (config) => {
     return config;
   }
 
-  try {
-    const { account } = await import('../config/appwrite.js');
-    const session = await account.getSession('current');
-    const token = session.secret || session.$id;
-    sessionStorage.setItem('appwrite_session', token);
-    config.headers['x-appwrite-session'] = token;
-  } catch {
-    // No session. Protected routes can return 401.
+  const shouldLookupAppwriteSession = import.meta.env.VITE_ENABLE_APPWRITE_SESSION_LOOKUP === 'true';
+  if (shouldLookupAppwriteSession) {
+    try {
+      const { account } = await import('../config/appwrite.js');
+      const session = await account.getSession('current');
+      const token = session.secret || session.$id;
+      sessionStorage.setItem('appwrite_session', token);
+      config.headers['x-appwrite-session'] = token;
+    } catch {
+      // No Appwrite session available. Backend cookie auth still works.
+    }
   }
 
   return config;

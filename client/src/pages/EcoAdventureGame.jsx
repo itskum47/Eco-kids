@@ -355,12 +355,12 @@ const EcoAdventureGame = () => {
         <GameHeader
           theme="emerald"
           eyebrow={t('gameHub.adventure.title')}
-          title={currentLevel?.title || t('gameHub.ui.gameComplete')}
-          subtitle={`${t('gameHub.ui.gradeBand')}: ${gradeMeta.shortLabel} · ${t('gameHub.ui.ageRange')}: ${gradeMeta.ageRange}`}
+          title={currentLevel?.title || t('gameHub.gameComplete')}
+          subtitle={`${t('gameHub.gradeBand')}: ${gradeMeta.shortLabel} · ${t('gameHub.ageRange')}: ${gradeMeta.ageRange}`}
           badges={[
-            { id: 'coins', label: `${t('gameHub.ui.ecoCoins')}: ${ecoCoins}`, className: 'bg-emerald-50 text-emerald-700' },
-            { id: 'level', label: `${t('gameHub.ui.level')}: ${currentLevelIndex + 1}/${levels.length}`, className: 'bg-sky-50 text-sky-700' },
-            { id: 'score', label: `${t('gameHub.ui.score')}: ${score}`, className: 'bg-amber-50 text-amber-700' },
+            { id: 'coins', label: `${t('gameHub.ecoCoins')}: ${ecoCoins}`, className: 'bg-emerald-50 text-emerald-700' },
+            { id: 'level', label: `${t('gameHub.level')}: ${currentLevelIndex + 1}/${levels.length}`, className: 'bg-sky-50 text-sky-700' },
+            { id: 'score', label: `${t('gameHub.score')}: ${score}`, className: 'bg-amber-50 text-amber-700' },
           ]}
         />
 
@@ -391,12 +391,12 @@ const EcoAdventureGame = () => {
                 onClick={startGame}
                 className="mt-8 inline-flex rounded-full bg-emerald-600 px-6 py-3 text-sm font-black text-white shadow-lg transition hover:scale-[1.02] hover:bg-emerald-700"
               >
-                {t('gameHub.ui.startGame')}
+                {t('gameHub.startGame')}
               </button>
             </div>
             <div className="rounded-[32px] border border-slate-200 bg-slate-950 p-6 text-white shadow-xl">
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="text-lg font-black">{t('gameHub.ui.gradeProfile')}</h3>
+                <h3 className="text-lg font-black">{t('gameHub.gradeProfile')}</h3>
                 <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-black uppercase tracking-[0.16em]">{gradeMeta.shortLabel}</span>
               </div>
               <p className="mb-4 text-sm text-white/75">{isSimulationMode ? t('gameHub.adventure.higherMode') : t('gameHub.adventure.defaultMode')}</p>
@@ -413,20 +413,20 @@ const EcoAdventureGame = () => {
           <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
             <div className="space-y-5 rounded-[30px] border border-white/70 bg-white/85 p-6 shadow-xl backdrop-blur">
               <div>
-                <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">{t('gameHub.ui.missionStatus')}</div>
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-emerald-700">{t('gameHub.missionStatus')}</div>
                 <h2 className="mt-2 text-2xl font-black text-slate-900">{currentLevel.title}</h2>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                 <div className="rounded-3xl bg-slate-100 p-4 text-sm font-bold text-slate-700">
-                  {t('gameHub.ui.safeItemsLeft')}: {safeItemsRemaining}
+                  {t('gameHub.safeItemsLeft')}: {safeItemsRemaining}
                 </div>
                 <div className="rounded-3xl bg-rose-50 p-4 text-sm font-bold text-rose-700">
-                  {t('gameHub.ui.lives')}: {Array.from({ length: Math.max(lives, 0) }, () => '❤️').join(' ') || '0'}
+                  {t('gameHub.lives')}: {Array.from({ length: Math.max(lives, 0) }, () => '❤️').join(' ') || '0'}
                 </div>
                 <div className="rounded-3xl bg-sky-50 p-4 text-sm font-bold text-sky-700">
                   {gradeGroup === 'Junior'
-                    ? `${t('gameHub.ui.lastCollected')}: ${lastCollected || t('gameHub.ui.waiting')}`
-                    : `${t('gameHub.ui.co2Saved')}: ${co2Saved} kg`}
+                    ? `${t('gameHub.lastCollected')}: ${lastCollected || t('gameHub.waiting')}`
+                    : `${t('gameHub.co2Saved')}: ${co2Saved} kg`}
                 </div>
                 {gradeGroup === 'Senior' && (
                   <div className="rounded-3xl bg-amber-50 p-4 text-sm font-bold text-amber-700">
@@ -461,7 +461,7 @@ const EcoAdventureGame = () => {
                     >
                       <div className="mb-3 text-5xl">{item.emoji}</div>
                       {!isPrimary && <div className="text-sm font-black">{item.label}</div>}
-                      {!isPrimary && <div className="mt-2 text-xs font-bold text-slate-500">{item.kind === 'safe' ? t('gameHub.ui.collect') : t('gameHub.ui.avoid')}</div>}
+                      {!isPrimary && <div className="mt-2 text-xs font-bold text-slate-500">{item.kind === 'safe' ? t('gameHub.collect') : t('gameHub.avoid')}</div>}
                     </motion.button>
                   );
                 })}
@@ -481,8 +481,8 @@ const EcoAdventureGame = () => {
                 <div className="mb-3 h-3 overflow-hidden rounded-full bg-white/10">
                   <div className="h-full rounded-full bg-gradient-to-r from-lime-300 to-emerald-400" style={{ width: `${planetHealth}%` }} />
                 </div>
-                <div className="mb-2 text-sm">{t('gameHub.ui.planetHealth')}: {planetHealth}%</div>
-                <div className="text-sm">{t('gameHub.ui.cityBudget')}: {cityBudget}</div>
+                <div className="mb-2 text-sm">{t('gameHub.planetHealth')}: {planetHealth}%</div>
+                <div className="text-sm">{t('gameHub.cityBudget')}: {cityBudget}</div>
               </div>
             </div>
             <div className="grid gap-4">
@@ -495,9 +495,9 @@ const EcoAdventureGame = () => {
                 >
                   <div className="mb-2 text-lg font-black text-slate-900">{option.label}</div>
                   <div className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
-                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">{t('gameHub.ui.score')}: {option.impact > 0 ? '+' : ''}{option.impact}</span>
-                    <span className="rounded-full bg-sky-50 px-3 py-1 text-sky-700">{t('gameHub.ui.planetHealth')}: {option.planet > 0 ? '+' : ''}{option.planet}</span>
-                    <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">{t('gameHub.ui.cityBudget')}: {option.budget}</span>
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">{t('gameHub.score')}: {option.impact > 0 ? '+' : ''}{option.impact}</span>
+                    <span className="rounded-full bg-sky-50 px-3 py-1 text-sky-700">{t('gameHub.planetHealth')}: {option.planet > 0 ? '+' : ''}{option.planet}</span>
+                    <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">{t('gameHub.cityBudget')}: {option.budget}</span>
                   </div>
                 </button>
               ))}
@@ -513,7 +513,7 @@ const EcoAdventureGame = () => {
             <FactCard
               key="adventure-fact"
               fact={levelFact}
-              buttonLabel={currentLevelIndex + 1 >= levels.length ? t('gameHub.ui.playAgain') : t('gameHub.ui.nextLevel')}
+              buttonLabel={currentLevelIndex + 1 >= levels.length ? t('gameHub.playAgain') : t('gameHub.nextLevel')}
               onNext={handleFactNext}
             />
           )}
@@ -525,14 +525,14 @@ const EcoAdventureGame = () => {
               className=""
             >
               <GameSummaryStats
-                title={t('gameHub.ui.gameComplete')}
-                ctaLabel={t('gameHub.ui.playAgain')}
+                title={t('gameHub.gameComplete')}
+                ctaLabel={t('gameHub.playAgain')}
                 onCta={startGame}
                 stats={[
-                  { id: 'score', label: t('gameHub.ui.score'), value: score, className: 'bg-emerald-50 text-emerald-700' },
-                  { id: 'co2', label: t('gameHub.ui.co2Saved'), value: `${co2Saved} kg`, className: 'bg-sky-50 text-sky-700' },
-                  { id: 'quiz', label: t('gameHub.ui.quizCorrect'), value: questionsCorrect, className: 'bg-amber-50 text-amber-700' },
-                  { id: 'health', label: t('gameHub.ui.planetHealth'), value: `${planetHealth}%`, className: 'bg-lime-50 text-lime-700' },
+                  { id: 'score', label: t('gameHub.score'), value: score, className: 'bg-emerald-50 text-emerald-700' },
+                  { id: 'co2', label: t('gameHub.co2Saved'), value: `${co2Saved} kg`, className: 'bg-sky-50 text-sky-700' },
+                  { id: 'quiz', label: t('gameHub.quizCorrect'), value: questionsCorrect, className: 'bg-amber-50 text-amber-700' },
+                  { id: 'health', label: t('gameHub.planetHealth'), value: `${planetHealth}%`, className: 'bg-lime-50 text-lime-700' },
                 ]}
               />
             </motion.div>

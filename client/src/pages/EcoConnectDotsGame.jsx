@@ -113,19 +113,19 @@ const EcoConnectDotsGame = ({ onGameComplete }) => {
             theme="cyan"
             eyebrow={t('gameHub.connectDots.title')}
             title={t('gameHub.connectDots.hero')}
-            subtitle={`${t('gameHub.ui.gradeBand')}: ${gradeMeta.shortLabel}`}
+            subtitle={`${t('gameHub.gradeBand')}: ${gradeMeta.shortLabel}`}
             badges={[
-              { id: 'levels', label: `${t('gameHub.ui.levelsDone')}: 0/${config.requiredLevels}`, className: 'bg-cyan-50 text-cyan-700' },
+              { id: 'levels', label: `${t('gameHub.levelsDone')}: 0/${config.requiredLevels}`, className: 'bg-cyan-50 text-cyan-700' },
             ]}
           />
 
           <div className="rounded-[30px] border border-cyan-100 bg-white p-8 text-center shadow-xl">
             <p className="mb-6 text-gray-600">{t('gameHub.connectDots.description')}</p>
             <p className="mb-6 rounded-2xl bg-cyan-50 p-4 text-sm font-semibold text-cyan-700">
-              {t(facts[0]?.textKey, { defaultValue: facts[0]?.text || t('gameHub.ui.funFact') })}
+              {t(facts[0]?.textKey, { defaultValue: facts[0]?.text || t('gameHub.funFact') })}
             </p>
             <button onClick={startGame} className="rounded-lg bg-cyan-600 px-8 py-3 font-semibold text-white hover:bg-cyan-700">
-              {t('gameHub.ui.startConnecting')}
+              {t('gameHub.startConnecting')}
             </button>
           </div>
         </div>
@@ -141,9 +141,9 @@ const EcoConnectDotsGame = ({ onGameComplete }) => {
         title={`${targetPattern.name} (${targetPattern.emoji})`}
         subtitle={t('gameHub.connectDots.tapHint')}
         badges={[
-          { id: 'score', label: `${t('gameHub.ui.score')}: ${score}`, className: 'bg-emerald-50 text-emerald-700' },
-          { id: 'level', label: `${t('gameHub.ui.level')}: ${levelIndex + 1}/${config.requiredLevels}`, className: 'bg-sky-50 text-sky-700' },
-          { id: 'progress', label: `${t('gameHub.ui.progress')}: ${connectedDots.length}/${targetPattern.dots.length}`, className: 'bg-amber-50 text-amber-700' },
+          { id: 'score', label: `${t('gameHub.score')}: ${score}`, className: 'bg-emerald-50 text-emerald-700' },
+          { id: 'level', label: `${t('gameHub.level')}: ${levelIndex + 1}/${config.requiredLevels}`, className: 'bg-sky-50 text-sky-700' },
+          { id: 'progress', label: `${t('gameHub.progress')}: ${connectedDots.length}/${targetPattern.dots.length}`, className: 'bg-amber-50 text-amber-700' },
         ]}
       />
 
@@ -189,13 +189,13 @@ const EcoConnectDotsGame = ({ onGameComplete }) => {
       {completed && (
         <div className="mt-6">
           <GameSummaryStats
-            title={t('gameHub.ui.gameComplete')}
-            ctaLabel={t('gameHub.ui.playAgain')}
+            title={t('gameHub.gameComplete')}
+            ctaLabel={t('gameHub.playAgain')}
             onCta={startGame}
             stats={[
-              { id: 'score', label: t('gameHub.ui.score'), value: score, className: 'bg-emerald-50 text-emerald-700' },
-              { id: 'levels', label: t('gameHub.ui.levelsDone'), value: `${config.requiredLevels}/${config.requiredLevels}`, className: 'bg-sky-50 text-sky-700' },
-              { id: 'impact', label: t('gameHub.ui.sustainabilityScore'), value: Math.min(100, score), className: 'bg-lime-50 text-lime-700' },
+              { id: 'score', label: t('gameHub.score'), value: score, className: 'bg-emerald-50 text-emerald-700' },
+              { id: 'levels', label: t('gameHub.levelsDone'), value: `${config.requiredLevels}/${config.requiredLevels}`, className: 'bg-sky-50 text-sky-700' },
+              { id: 'impact', label: t('gameHub.sustainabilityScore'), value: Math.min(100, score), className: 'bg-lime-50 text-lime-700' },
             ]}
           />
         </div>

@@ -139,19 +139,19 @@ const MemoryMatchGame = ({ onGameComplete }) => {
             theme="violet"
             eyebrow={t('gameHub.memory.title')}
             title={t('gameHub.memory.hero')}
-            subtitle={`${t('gameHub.ui.gradeBand')}: ${gradeMeta.shortLabel}`}
+            subtitle={`${t('gameHub.gradeBand')}: ${gradeMeta.shortLabel}`}
             badges={[
-              { id: 'pairs', label: `${t('gameHub.ui.pairsFound')}: ${config.pairCount}`, className: 'bg-violet-50 text-violet-700' },
-              { id: 'time', label: `${t('gameHub.ui.timeLeft')}: ${config.timeLimit}s`, className: 'bg-sky-50 text-sky-700' },
+              { id: 'pairs', label: `${t('gameHub.pairsFound')}: ${config.pairCount}`, className: 'bg-violet-50 text-violet-700' },
+              { id: 'time', label: `${t('gameHub.timeLeft')}: ${config.timeLimit}s`, className: 'bg-sky-50 text-sky-700' },
             ]}
           />
           <div className="rounded-[30px] border border-violet-100 bg-white p-8 shadow-xl text-center">
             <p className="mb-6 text-gray-600">{t('gameHub.memory.description')}</p>
             <p className="mb-6 rounded-2xl bg-violet-50 p-4 text-sm font-semibold text-violet-700">
-              {t(facts[0]?.textKey, { defaultValue: facts[0]?.text || t('gameHub.ui.funFact') })}
+              {t(facts[0]?.textKey, { defaultValue: facts[0]?.text || t('gameHub.funFact') })}
             </p>
             <button onClick={init} className="rounded-lg bg-violet-600 px-8 py-3 font-semibold text-white hover:bg-violet-700">
-              {t('gameHub.ui.startMemory')}
+              {t('gameHub.startMemory')}
             </button>
           </div>
         </div>
@@ -165,12 +165,12 @@ const MemoryMatchGame = ({ onGameComplete }) => {
         theme="violet"
         eyebrow={t('gameHub.memory.title')}
         title={t('gameHub.memory.hero')}
-        subtitle={`${t('gameHub.ui.gradeBand')}: ${gradeMeta.shortLabel}`}
+        subtitle={`${t('gameHub.gradeBand')}: ${gradeMeta.shortLabel}`}
         badges={[
-          { id: 'score', label: `${t('gameHub.ui.score')}: ${state.score}`, className: 'bg-emerald-50 text-emerald-700' },
-          { id: 'moves', label: `${t('gameHub.ui.moves')}: ${state.moves}`, className: 'bg-sky-50 text-sky-700' },
-          { id: 'time', label: `${t('gameHub.ui.timeLeft')}: ${state.timeLeft}s`, className: 'bg-violet-50 text-violet-700' },
-          { id: 'pairs', label: `${t('gameHub.ui.pairsFound')}: ${pairsFound}/${totalPairs}`, className: 'bg-amber-50 text-amber-700' },
+          { id: 'score', label: `${t('gameHub.score')}: ${state.score}`, className: 'bg-emerald-50 text-emerald-700' },
+          { id: 'moves', label: `${t('gameHub.moves')}: ${state.moves}`, className: 'bg-sky-50 text-sky-700' },
+          { id: 'time', label: `${t('gameHub.timeLeft')}: ${state.timeLeft}s`, className: 'bg-violet-50 text-violet-700' },
+          { id: 'pairs', label: `${t('gameHub.pairsFound')}: ${pairsFound}/${totalPairs}`, className: 'bg-amber-50 text-amber-700' },
         ]}
       />
 
@@ -196,13 +196,13 @@ const MemoryMatchGame = ({ onGameComplete }) => {
       {state.done && (
         <div className="mt-6">
           <GameSummaryStats
-            title={t('gameHub.ui.gameComplete')}
-            ctaLabel={t('gameHub.ui.playAgain')}
+            title={t('gameHub.gameComplete')}
+            ctaLabel={t('gameHub.playAgain')}
             onCta={init}
             stats={[
-              { id: 'score', label: t('gameHub.ui.score'), value: state.score + state.timeLeft * 3, className: 'bg-emerald-50 text-emerald-700' },
-              { id: 'moves', label: t('gameHub.ui.moves'), value: state.moves, className: 'bg-sky-50 text-sky-700' },
-              { id: 'pairs', label: t('gameHub.ui.pairsFound'), value: `${pairsFound}/${totalPairs}`, className: 'bg-violet-50 text-violet-700' },
+              { id: 'score', label: t('gameHub.score'), value: state.score + state.timeLeft * 3, className: 'bg-emerald-50 text-emerald-700' },
+              { id: 'moves', label: t('gameHub.moves'), value: state.moves, className: 'bg-sky-50 text-sky-700' },
+              { id: 'pairs', label: t('gameHub.pairsFound'), value: `${pairsFound}/${totalPairs}`, className: 'bg-violet-50 text-violet-700' },
             ]}
           />
         </div>
