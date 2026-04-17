@@ -1,9 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: {{ .Release.Name }}-config
-data:
-  NODE_ENV: {{ .Values.global.environment | quote }}
-  PORT: "5001"
-  LOG_LEVEL: "info"
-  OTEL_SERVICE_NAME: "ecokids-backend"

@@ -9,7 +9,6 @@ A multilingual, gamified environmental education platform for schools and colleg
 [![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](docker-compose.yml)
 [![License](https://img.shields.io/badge/License-MIT-3b82f6?style=for-the-badge)](LICENSE)
 
 </div>
@@ -46,7 +45,7 @@ The result is a practical loop of learning, action, and accountability.
 ### 4. Scalable Engineering Base
 - Web + mobile clients
 - Queue-backed backend workflows
-- Docker, Kubernetes, monitoring stack
+- Clean service-oriented backend layout
 
 ## Architecture Snapshot
 
@@ -70,7 +69,7 @@ API Layer (Node.js/Express)
 | Backend | Node.js, Express, JWT, Mongoose |
 | Data | MongoDB, Redis |
 | Async | BullMQ workers |
-| Infra | Docker, Nginx, Kubernetes (Helm), Prometheus, Grafana |
+| Infra | Node.js services, Redis queues, monitoring stack |
 | Integrations | Appwrite, Cloudinary, external AI services |
 
 ## Repository Layout
@@ -84,9 +83,7 @@ ecokids-india/
 ├── docs/                      # Product + engineering documentation
 │   └── compliance/            # Security/compliance/governance docs
 ├── scripts/                   # Utility and maintenance scripts
-├── monitoring/                # Prometheus/Grafana configs
-├── k8s/                       # Helm/manifests
-└── docker-compose*.yml        # Local/prod/monitoring stacks
+└── monitoring/                # Prometheus/alerting configs
 ```
 
 ## Quick Start
@@ -153,13 +150,6 @@ npm run check:queries  # validate query safety scripts
 - [docs/compliance/SECURITY_COMPLIANCE.md](docs/compliance/SECURITY_COMPLIANCE.md)
 - [docs/compliance/DISASTER_RECOVERY_PLAN.md](docs/compliance/DISASTER_RECOVERY_PLAN.md)
 - [docs/compliance/PARENTAL_CONSENT_SYSTEM_SPEC.md](docs/compliance/PARENTAL_CONSENT_SYSTEM_SPEC.md)
-
-## Deployment
-
-- Local/dev: [docker-compose.yml](docker-compose.yml)
-- Production: [docker-compose.prod.yml](docker-compose.prod.yml)
-- Monitoring stack: [docker-compose.monitoring.yml](docker-compose.monitoring.yml)
-- Kubernetes: [k8s](k8s)
 
 ## License
 MIT
