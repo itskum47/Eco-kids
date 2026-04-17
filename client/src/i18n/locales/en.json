@@ -819,5 +819,43 @@
     "soil": "Soil",
     "schools": "Schools",
     "planet": "Planet"
+  },
+  "gameHub": {
+    "ui": {
+      "ecoCoins": "EcoCoins",
+      "gradeBand": "Grade Band",
+      "level": "Level",
+      "levels": "Levels",
+      "score": "Score",
+      "progress": "Progress",
+      "timeLeft": "Time Left",
+      "gameComplete": "Game Complete!",
+      "playAgain": "Play Again",
+      "sortedCorrectly": "Sorted Correctly",
+      "landfillDiverted": "Landfill Diverted",
+      "funFact": "Fun Fact",
+      "startSorting": "Start Sorting",
+      "startMemory": "Start Game",
+      "pairsFound": "Pairs Found",
+      "moves": "Moves"
+    },
+    "adventure": {
+      "title": "Renewable Alley",
+      "description": "Collect renewable energy items while avoiding pollution hazards",
+      "hero": "Adventure Hero",
+      "collectPrompt": "Collect eco-friendly items",
+      "quizChallenge": {
+        "title": "Quiz Challenge",
+        "quizPrompt": "Answer questions about the environment"
+      },
+      "curriculum": {
+        "title": "Curriculum",
+        "curriculumPrompt": "Learn about environmental topics"
+      }
+    },
+    "userProfile": {
+      "ecoCoins": "EcoCoins",
+      "level": "Level"
+    }
   }
 }
