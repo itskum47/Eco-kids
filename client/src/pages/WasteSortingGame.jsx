@@ -135,20 +135,20 @@ const WasteSortingGame = ({ onGameComplete }) => {
             theme="emerald"
             eyebrow={t('gameHub.waste.title')}
             title={t('gameHub.waste.hero')}
-            subtitle={`${t('gameHub.ui.gradeBand')}: ${gradeMeta.shortLabel}`}
-            badges={[{ id: 'items', label: `${t('gameHub.ui.levels')}: ${config.totalItems}`, className: 'bg-emerald-50 text-emerald-700' }]}
+            subtitle={`${t('gameHub.gradeBand')}: ${gradeMeta.shortLabel}`}
+            badges={[{ id: 'items', label: `${t('gameHub.levels')}: ${config.totalItems}`, className: 'bg-emerald-50 text-emerald-700' }]}
           />
 
           <div className="rounded-[30px] border border-emerald-100 bg-white p-8 shadow-xl">
             <p className="mb-6 text-base text-slate-600">{t('gameHub.waste.description')}</p>
             <div className="mb-6 rounded-2xl bg-lime-50 p-4 text-sm font-semibold text-lime-800">
-              {t(facts[0]?.textKey, { defaultValue: facts[0]?.text || t('gameHub.ui.funFact') })}
+              {t(facts[0]?.textKey, { defaultValue: facts[0]?.text || t('gameHub.funFact') })}
             </div>
             <button
               onClick={startGame}
               className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
             >
-              {t('gameHub.ui.startSorting')}
+              {t('gameHub.startSorting')}
             </button>
           </div>
         </div>
@@ -162,11 +162,11 @@ const WasteSortingGame = ({ onGameComplete }) => {
         theme="emerald"
         eyebrow={t('gameHub.waste.title')}
         title={t('gameHub.waste.hero')}
-        subtitle={`${t('gameHub.ui.gradeBand')}: ${gradeMeta.shortLabel}`}
+        subtitle={`${t('gameHub.gradeBand')}: ${gradeMeta.shortLabel}`}
         badges={[
-          { id: 'score', label: `${t('gameHub.ui.score')}: ${gameState.score}`, className: 'bg-emerald-50 text-emerald-700' },
-          { id: 'progress', label: `${t('gameHub.ui.progress')}: ${gameState.sortedCorrectly}/${gameState.totalItems}`, className: 'bg-sky-50 text-sky-700' },
-          { id: 'time', label: `${t('gameHub.ui.timeLeft')}: ${gameState.timeLeft}s`, className: 'bg-amber-50 text-amber-700' },
+          { id: 'score', label: `${t('gameHub.score')}: ${gameState.score}`, className: 'bg-emerald-50 text-emerald-700' },
+          { id: 'progress', label: `${t('gameHub.progress')}: ${gameState.sortedCorrectly}/${gameState.totalItems}`, className: 'bg-sky-50 text-sky-700' },
+          { id: 'time', label: `${t('gameHub.timeLeft')}: ${gameState.timeLeft}s`, className: 'bg-amber-50 text-amber-700' },
         ]}
       />
 
@@ -199,13 +199,13 @@ const WasteSortingGame = ({ onGameComplete }) => {
 
       {gameState.gameCompleted && (
         <GameSummaryStats
-          title={t('gameHub.ui.gameComplete')}
-          ctaLabel={t('gameHub.ui.playAgain')}
+          title={t('gameHub.gameComplete')}
+          ctaLabel={t('gameHub.playAgain')}
           onCta={startGame}
           stats={[
-            { id: 'score', label: t('gameHub.ui.score'), value: gameState.score, className: 'bg-emerald-50 text-emerald-700' },
-            { id: 'sorted', label: t('gameHub.ui.sortedCorrectly'), value: gameState.sortedCorrectly, className: 'bg-sky-50 text-sky-700' },
-            { id: 'landfill', label: t('gameHub.ui.landfillDiverted'), value: `${Math.round(gameState.sortedCorrectly * 1.3)} kg`, className: 'bg-lime-50 text-lime-700' },
+            { id: 'score', label: t('gameHub.score'), value: gameState.score, className: 'bg-emerald-50 text-emerald-700' },
+            { id: 'sorted', label: t('gameHub.sortedCorrectly'), value: gameState.sortedCorrectly, className: 'bg-sky-50 text-sky-700' },
+            { id: 'landfill', label: t('gameHub.landfillDiverted'), value: `${Math.round(gameState.sortedCorrectly * 1.3)} kg`, className: 'bg-lime-50 text-lime-700' },
           ]}
         />
       )}

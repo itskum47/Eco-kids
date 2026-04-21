@@ -18,7 +18,7 @@ const FactCard = ({ fact, buttonLabel, onNext }) => {
     >
       <div className="mb-3 flex items-center gap-3 text-sm font-black uppercase tracking-[0.18em] text-emerald-50">
         <span className="text-2xl">🌱</span>
-        <span>{t('gameHub.ui.didYouKnow')}</span>
+        <span>{t('gameHub.didYouKnow')}</span>
       </div>
       <p className="mb-5 text-lg font-semibold leading-relaxed text-white/95">
         {t(fact.textKey, { defaultValue: fact.text })}
@@ -28,7 +28,7 @@ const FactCard = ({ fact, buttonLabel, onNext }) => {
         onClick={onNext}
         className="inline-flex items-center rounded-full bg-white px-5 py-3 text-sm font-black text-emerald-700 transition-transform hover:scale-[1.02]"
       >
-        {buttonLabel || t('gameHub.ui.nextLevel')}
+        {buttonLabel || t('gameHub.nextLevel')}
       </button>
     </motion.div>
   );

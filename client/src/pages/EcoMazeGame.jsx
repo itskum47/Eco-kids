@@ -328,11 +328,11 @@ const EcoMazeGame = () => {
           theme="cyan"
           eyebrow={t('gameHub.maze.title')}
           title={t('gameHub.maze.hero')}
-          subtitle={`${t('gameHub.ui.gradeBand')}: ${gradeMeta.shortLabel}`}
+          subtitle={`${t('gameHub.gradeBand')}: ${gradeMeta.shortLabel}`}
           badges={[
-            { id: 'coins', label: `${t('gameHub.ui.ecoCoins')}: ${ecoCoins}`, className: 'bg-cyan-50 text-cyan-700' },
-            { id: 'level', label: `${t('gameHub.ui.level')}: ${currentLevelIndex + 1}/${levels.length}`, className: 'bg-sky-50 text-sky-700' },
-            { id: 'score', label: `${t('gameHub.ui.score')}: ${score}`, className: 'bg-amber-50 text-amber-700' },
+            { id: 'coins', label: `${t('gameHub.ecoCoins')}: ${ecoCoins}`, className: 'bg-cyan-50 text-cyan-700' },
+            { id: 'level', label: `${t('gameHub.level')}: ${currentLevelIndex + 1}/${levels.length}`, className: 'bg-sky-50 text-sky-700' },
+            { id: 'score', label: `${t('gameHub.score')}: ${score}`, className: 'bg-amber-50 text-amber-700' },
           ]}
         />
 
@@ -342,11 +342,11 @@ const EcoMazeGame = () => {
               <h2 className="mb-4 text-4xl font-black text-slate-900">{t('gameHub.maze.description')}</h2>
               <p className="mb-6 text-base leading-7 text-slate-600">{t('gameHub.maze.subtext')}</p>
               <button type="button" onClick={startGame} className="rounded-full bg-cyan-600 px-6 py-3 text-sm font-black text-white">
-                {t('gameHub.ui.startGame')}
+                {t('gameHub.startGame')}
               </button>
             </div>
             <div className="rounded-[32px] border border-slate-200 bg-slate-950 p-6 text-white shadow-xl">
-              <div className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-white/60">{t('gameHub.ui.gradeProfile')}</div>
+              <div className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-white/60">{t('gameHub.gradeProfile')}</div>
               <div className="space-y-3 text-sm text-white/80">
                 <div>• {t('gameHub.maze.primaryRule')}</div>
                 <div>• {t('gameHub.maze.juniorRule')}</div>
@@ -361,16 +361,16 @@ const EcoMazeGame = () => {
           <div className="grid gap-6 lg:grid-cols-[0.7fr_1.3fr]">
             <div className="space-y-4 rounded-[30px] border border-cyan-100 bg-white p-6 shadow-xl">
               <div className="rounded-3xl bg-cyan-50 p-4">
-                <div className="text-sm font-black text-cyan-700">{t('gameHub.ui.checkpointWord')}</div>
+                <div className="text-sm font-black text-cyan-700">{t('gameHub.checkpointWord')}</div>
                 <div className="mt-2 text-lg font-black text-slate-900">
-                  {checkpointVocab ? t(checkpointVocab.termKey, { defaultValue: checkpointVocab.term }) : t('gameHub.ui.waiting')}
+                  {checkpointVocab ? t(checkpointVocab.termKey, { defaultValue: checkpointVocab.term }) : t('gameHub.waiting')}
                 </div>
                 <div className="mt-1 text-sm text-slate-600">
                   {checkpointVocab ? t(checkpointVocab.meaningKey, { defaultValue: checkpointVocab.meaning }) : t('gameHub.maze.reachCheckpoint')}
                 </div>
               </div>
               <div className="rounded-3xl bg-slate-100 p-4 text-sm font-bold text-slate-700">
-                {t('gameHub.ui.pathInsight')}: {pathInsight || t('gameHub.ui.waiting')}
+                {t('gameHub.pathInsight')}: {pathInsight || t('gameHub.waiting')}
               </div>
               {(gradeGroup === 'Senior' || gradeGroup === 'Higher') && (
                 <div className="rounded-3xl bg-rose-50 p-4 text-sm font-bold text-rose-700">
@@ -379,7 +379,7 @@ const EcoMazeGame = () => {
               )}
               {gradeGroup === 'Higher' && (
                 <div className="rounded-3xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
-                  {t('gameHub.ui.planetHealth')}: {planetHealth}%
+                  {t('gameHub.planetHealth')}: {planetHealth}%
                 </div>
               )}
               <div className="grid grid-cols-2 gap-3">
@@ -470,21 +470,21 @@ const EcoMazeGame = () => {
             <FactCard
               key="maze-fact"
               fact={cycleIndex(facts, currentLevelIndex)}
-              buttonLabel={t('gameHub.ui.nextLevel')}
+              buttonLabel={t('gameHub.nextLevel')}
               onNext={handleFactNext}
             />
           )}
           {phase === 'summary' && (
             <motion.div key="maze-summary" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <GameSummaryStats
-                title={t('gameHub.ui.gameComplete')}
-                ctaLabel={t('gameHub.ui.playAgain')}
+                title={t('gameHub.gameComplete')}
+                ctaLabel={t('gameHub.playAgain')}
                 onCta={startGame}
                 stats={[
-                  { id: 'score', label: t('gameHub.ui.score'), value: score, className: 'bg-cyan-50 text-cyan-700' },
-                  { id: 'quiz', label: t('gameHub.ui.quizCorrect'), value: questionsCorrect, className: 'bg-sky-50 text-sky-700' },
+                  { id: 'score', label: t('gameHub.score'), value: score, className: 'bg-cyan-50 text-cyan-700' },
+                  { id: 'quiz', label: t('gameHub.quizCorrect'), value: questionsCorrect, className: 'bg-sky-50 text-sky-700' },
                   { id: 'ppm', label: 'CO2 ppm', value: `+${ppmPenalty}`, className: 'bg-rose-50 text-rose-700' },
-                  { id: 'health', label: t('gameHub.ui.planetHealth'), value: `${planetHealth}%`, className: 'bg-emerald-50 text-emerald-700' },
+                  { id: 'health', label: t('gameHub.planetHealth'), value: `${planetHealth}%`, className: 'bg-emerald-50 text-emerald-700' },
                 ]}
               />
             </motion.div>
