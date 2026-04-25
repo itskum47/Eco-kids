@@ -40,6 +40,16 @@ const redemptionSchema = new mongoose.Schema({
     trim: true,
     maxlength: 300
   },
+  riskScore: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
+  riskReasons: {
+    type: [String],
+    default: []
+  },
   fulfilledAt: Date,
   refundedAt: Date
 }, { timestamps: true });

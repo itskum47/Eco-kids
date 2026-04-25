@@ -12,7 +12,11 @@
     "build": "cd client && npm run build",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
     "seed": "cd server && npm run seed",
-    "check:queries": "node scripts/check-unbounded-queries.js"
+    "check:queries": "node scripts/check-unbounded-queries.js",
+    "demo:smoke": "bash scripts/demo_smoke_check.sh",
+    "demo:latency": "node scripts/latency_p95_check.js",
+    "demo:freeze": "bash scripts/freeze-demo-tenant.sh",
+    "demo:freeze:check": "bash scripts/check-demo-tenant-frozen.sh"
   },
   "keywords": [
     "education",

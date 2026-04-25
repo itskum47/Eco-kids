@@ -114,6 +114,17 @@ habitSchema.index({ category: 1 });
 habitSchema.index({ currentStreak: -1 });
 habitSchema.index({ completedDates: 1 });
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+function toUtcDayKey(value) {
+  const date = new Date(value);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function dayKeyToDate(dayKey) {
+  return new Date(dayKey);
+}
+
 // ============================================================================
 // METHODS
 // ============================================================================
@@ -121,43 +132,38 @@ habitSchema.index({ completedDates: 1 });
 /**
  * Log habit completion for today
  */
-habitSchema.methods.logCompletion = function () {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+habitSchema.methods.logCompletion = function (referenceDate = new Date()) {
+  const todayKey = toUtcDayKey(referenceDate);
+  const today = dayKeyToDate(todayKey);
+  const existingKeys = new Set(this.completedDates.map((date) => toUtcDayKey(date)));
 
   // Check if already completed today
-  const alreadyCompleted = this.completedDates.some(date => {
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime() === today.getTime();
-  });
-
-  if (alreadyCompleted) {
+  if (existingKeys.has(todayKey)) {
     return { message: 'Already completed today', status: false };
+  }
+
+  const sortedKeysDesc = [...existingKeys].sort((a, b) => b - a);
+  const latestKey = sortedKeysDesc[0];
+  if (latestKey && todayKey < latestKey) {
+    return { message: 'Cannot log completion for a past day', status: false };
   }
 
   // Add today to completed dates
   this.completedDates.push(today);
   this.totalCompletion += 1;
+  existingKeys.add(todayKey);
+
+  const completeKeysDesc = [...existingKeys].sort((a, b) => b - a);
 
   // Calculate streak
   let streak = 1;
-  let currentDate = new Date(today);
+  let currentKey = completeKeysDesc[0];
 
-  for (let i = 1; i < this.completedDates.length; i++) {
-    const prevDate = new Date(currentDate);
-    prevDate.setDate(prevDate.getDate() - 1);
-    prevDate.setHours(0, 0, 0, 0);
-
-    const completedOn = this.completedDates.find(date => {
-      const d = new Date(date);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime() === prevDate.getTime();
-    });
-
-    if (completedOn) {
+  for (let i = 1; i < completeKeysDesc.length; i++) {
+    const expectedPrev = currentKey - DAY_IN_MS;
+    if (completeKeysDesc[i] === expectedPrev) {
       streak++;
-      currentDate = prevDate;
+      currentKey = completeKeysDesc[i];
     } else {
       break;
     }
@@ -171,9 +177,8 @@ habitSchema.methods.logCompletion = function () {
   }
 
   // Update weekly completion
-  const weekAgo = new Date();
-  weekAgo.setDate(weekAgo.getDate() - 7);
-  this.stats.weeklyCompletion = this.completedDates.filter(date => date >= weekAgo).length;
+  const weekStartKey = todayKey - (6 * DAY_IN_MS);
+  this.stats.weeklyCompletion = [...existingKeys].filter((key) => key >= weekStartKey && key <= todayKey).length;
 
   this.stats.lastCompleted = today;
 

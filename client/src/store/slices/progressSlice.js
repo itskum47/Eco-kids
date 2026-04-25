@@ -42,8 +42,8 @@ export const fetchLeaderboard = createAsyncThunk(
   'progress/fetchLeaderboard',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.get('/v1/progress/leaderboard');
-      return response.data.data;
+      const response = await api.get('/v1/leaderboards/global');
+      return response.data.leaderboard || response.data.data || [];
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch leaderboard');
     }

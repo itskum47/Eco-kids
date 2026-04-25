@@ -7,7 +7,8 @@ const {
     getEngagementFunnel,
     exportReport,
     trackEvent,
-    getNGOImpactSummary
+    getNGOImpactSummary,
+    getMetricsSummary
 } = require('../controllers/reportingController');
 
 router.use(protect);
@@ -18,6 +19,7 @@ router.post('/track', trackEvent);
 // Admin reporting
 router.get('/funnel', authorize('admin', 'district_admin', 'state_admin'), getEngagementFunnel);
 router.get('/export', authorize('admin', 'district_admin', 'state_admin'), exportReport);
+router.get('/metrics-summary', authorize('admin', 'district_admin', 'state_admin'), getMetricsSummary);
 
 // NGO reporting (NGO Coordinators only)
 router.get('/ngo/impact-summary', requireRole(ROLES.NGO_COORDINATOR), getNGOImpactSummary);

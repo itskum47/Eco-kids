@@ -215,6 +215,22 @@ export const activityAPI = {
       headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}
     });
   },
+
+  /**
+   * Submit activity with a real image file (multipart/form-data).
+   * The server's multer middleware receives req.file with the compressed buffer.
+   * @param {FormData} formData — must include 'file' field as a File/Blob object
+   */
+  submitActivityMultipart: (formData) => {
+    const idempotencyKey = formData.get('idempotencyKey');
+    return api.post('/v1/activity/submit', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {})
+      }
+    }).then(res => res.data);
+  },
+
   getMySubmissions: () => api.get('/v1/activity/my'),
   getPendingSubmissions: () => api.get('/v1/activity/pending'),
   getAppealedSubmissions: () => api.get('/v1/activity/appeals/pending'),
@@ -222,6 +238,7 @@ export const activityAPI = {
   appealSubmission: (submissionId, payload) => api.post(`/v1/activity/${submissionId}/appeal`, payload),
   resolveAppeal: (submissionId, payload) => api.put(`/v1/activity/${submissionId}/appeal/resolve`, payload)
 };
+
 
 // Backward compatibility: some legacy pages call api.activity.*
 api.activity = activityAPI;

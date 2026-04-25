@@ -17,7 +17,7 @@ export default function BottomNav() {
             boxShadow: "0 -2px 10px rgba(0,0,0,0.05)"
         }}>
             <Link to="/" style={{ textDecoration: "none", color: "#333", fontWeight: "bold" }}>Home</Link>
-            <Link to="/leaderboard" style={{ textDecoration: "none", color: "#333", fontWeight: "bold" }}>Leaderboard</Link>
+            <Link to="/leaderboards" style={{ textDecoration: "none", color: "#333", fontWeight: "bold" }}>Leaderboard</Link>
             <Link to="/submit" style={{ textDecoration: "none", color: "#333", fontWeight: "bold" }}>Submit</Link>
             <Link to="/profile" style={{ textDecoration: "none", color: "#333", fontWeight: "bold" }}>Profile</Link>
         </div>

@@ -304,29 +304,13 @@ exports.completeTopic = async (req, res, next) => {
       score: req.body.score || 100
     });
 
-    // Award EcoPoints
-    await req.user.addEcoPoints(topic.ecoPointsReward);
-
-    // Update streak
-    await req.user.updateStreak();
-
     // Mark completion on topic
     await topic.markCompletion();
-
-    // Check for badges
-    const completedCount = req.user.progress.topicsCompleted.length;
-    if (completedCount === 1) {
-      await req.user.awardBadge('first-topic', 'First Topic Completed');
-    } else if (completedCount === 10) {
-      await req.user.awardBadge('topic-explorer', 'Topic Explorer');
-    } else if (completedCount === 50) {
-      await req.user.awardBadge('topic-master', 'Topic Master');
-    }
 
     await req.user.save();
 
     successResponse(res, 200, 'Topic completed successfully', {
-      pointsEarned: topic.ecoPointsReward,
+      pointsEarned: 0,
       totalPoints: req.user.gamification.ecoPoints,
       level: req.user.gamification.level,
       completedTopics: req.user.progress.topicsCompleted.length

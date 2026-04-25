@@ -15,6 +15,12 @@ module.exports = (io) => {
   io.on('connection', (socket) => {
     logger.info(`[Socket] Client connected: ${socket.id}`);
 
+    socket.on('client-fallback-mode', (data = {}) => {
+      const state = data.enabled ? 'ENABLED' : 'DISABLED';
+      const reason = data.reason || 'unknown';
+      logger.info(`[Socket] Client fallback mode ${state} from ${socket.id} (${reason})`);
+    });
+
     // Handle room subscriptions
     socket.on('join-room', ({ room, userId }) => {
       socket.join(room);
@@ -74,16 +80,13 @@ module.exports = (io) => {
       logger.info(`[Socket] Badge earned emitted to ${room}`);
     });
 
-    // Listen for points-earned events
+    // Security: do not accept client-origin point mutation events.
     socket.on('points-earned', (data) => {
-      const room = `user-${data.userId}`;
-      io.to(room).emit('points-earned', {
-        points: data.points,
-        totalPoints: data.totalPoints,
-        activity: data.activity,
-        timestamp: new Date()
+      logger.warn(`[Socket] Rejected client-origin points-earned from ${socket.id}`);
+      socket.emit('event-rejected', {
+        event: 'points-earned',
+        reason: 'server-authoritative-only'
       });
-      logger.info(`[Socket] Points earned emitted to ${room}`);
     });
 
     // Photo AI verification result
@@ -243,18 +246,13 @@ module.exports = (io) => {
       logger.info(`[Socket] Client watching leaderboard: ${leaderboardType}`);
     });
 
-    // Broadcast rank changes
+    // Security: rank mutation events must be emitted by server services only.
     socket.on('rank-changed', (data) => {
-      const room = `leaderboard-${data.leaderboardType}`;
-      io.to(room).emit('leaderboard-update', {
-        userId: data.userId,
-        userName: data.userName,
-        newRank: data.newRank,
-        previousRank: data.previousRank,
-        ecoPoints: data.ecoPoints,
-        timestamp: new Date()
+      logger.warn(`[Socket] Rejected client-origin rank-changed from ${socket.id}`);
+      socket.emit('event-rejected', {
+        event: 'rank-changed',
+        reason: 'server-authoritative-only'
       });
-      logger.info(`[Socket] Rank change broadcasted on ${room}`);
     });
   });
 

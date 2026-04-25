@@ -1,41 +1,19 @@
 import React from 'react';
 
 const ActivityFeed = ({ activities = [] }) => {
-    // Mock data if none
-    const feedItems = activities.length > 0 ? activities : [
-        {
-            id: 1,
-            type: 'Tree Planting',
-            icon: '🌲',
-            status: 'approved',
-            points: '+50',
-            timestamp: '2 hours ago',
-            teacher: 'Mrs. Sharma'
-        },
-        {
-            id: 2,
-            type: 'Water Audit',
-            icon: '🚰',
-            status: 'pending',
-            points: 'Pending',
-            timestamp: '5 hours ago',
-        },
-        {
-            id: 3,
-            type: 'Recycling Sort',
-            icon: '♻️',
-            status: 'rejected',
-            feedback: 'Photo is too blurry, please retake',
-            timestamp: '1 day ago'
-        }
-    ];
+    const feedItems = activities || [];
 
     return (
         <div className="mt-8">
             <h3 className="font-ui font-bold text-[13px] text-[var(--t1)] mb-4 px-2">Recent Activity</h3>
 
             <div className="flex flex-col gap-3">
-                {feedItems.map(item => (
+                {feedItems.length === 0 ? (
+                    <div className="eco-card p-4 text-sm text-[var(--t3)] border border-dashed border-[var(--s2)]">
+                        No verified activity yet. The feed will populate after the first submission.
+                    </div>
+                ) : (
+                    feedItems.map(item => (
                     <div
                         key={item.id}
                         className={`eco-card p-4 flex gap-4 overflow-hidden border-l-4 ${item.status === 'approved' ? 'border-l-[var(--g1)]' :
@@ -83,7 +61,8 @@ const ActivityFeed = ({ activities = [] }) => {
                             )}
                         </div>
                     </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );

@@ -6,6 +6,7 @@ export default function useRealtimePoints() {
     const queryClient = useQueryClient();
     const [toastData, setToastData] = useState(null);
     const [rollbackToast, setRollbackToast] = useState(false);
+    const [fallbackMode, setFallbackMode] = useState(false);
 
     // Track points for reconciliation rollback detection
     const { data: userData } = useQueryClient().getQueryData(["me"]) || {};
@@ -14,6 +15,20 @@ export default function useRealtimePoints() {
 
     // Need a ref to store prev to compare
     const prevPointsRef = useRef(currentPoints);
+    const fallbackReportedRef = useRef(false);
+
+    const reportFallbackState = (state, reason = 'socket-disconnect') => {
+        if (state && fallbackReportedRef.current) return;
+        if (!state && !fallbackReportedRef.current) return;
+
+        socket.emit('client-fallback-mode', {
+            enabled: state,
+            reason,
+            timestamp: new Date().toISOString()
+        });
+
+        fallbackReportedRef.current = state;
+    };
 
     useEffect(() => {
         // Detect silent point reduction (rollback)
@@ -26,6 +41,16 @@ export default function useRealtimePoints() {
 
     useEffect(() => {
         const seenEvents = new Set(); // Prevent duplicate events
+
+        const enterFallbackMode = (reason = 'socket-disconnect') => {
+            setFallbackMode(true);
+            reportFallbackState(true, reason);
+        };
+
+        const exitFallbackMode = () => {
+            setFallbackMode(false);
+            reportFallbackState(false, 'socket-recovered');
+        };
 
         const handlePointsEarned = (data) => {
             // Assuming data contains a unique notificationId, or we use a timestamp if not
@@ -69,12 +94,47 @@ export default function useRealtimePoints() {
             }, 4000);
         };
 
+        const handleConnect = () => {
+            exitFallbackMode();
+        };
+
+        const handleDisconnect = () => {
+            enterFallbackMode('socket-disconnect');
+        };
+
+        const handleConnectError = () => {
+            enterFallbackMode('socket-connect-error');
+        };
+
         socket.on("points-earned", handlePointsEarned);
+        socket.on("connect", handleConnect);
+        socket.on("disconnect", handleDisconnect);
+        socket.on("connect_error", handleConnectError);
+
+        if (!socket.connected) {
+            enterFallbackMode('socket-not-connected');
+        }
 
         return () => {
             socket.off("points-earned", handlePointsEarned);
+            socket.off("connect", handleConnect);
+            socket.off("disconnect", handleDisconnect);
+            socket.off("connect_error", handleConnectError);
         };
     }, [queryClient]);
 
-    return { toastData, rollbackToast };
+    useEffect(() => {
+        if (!fallbackMode) return;
+
+        const intervalId = setInterval(() => {
+            queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+            queryClient.invalidateQueries({ queryKey: ["me"] });
+            queryClient.invalidateQueries({ queryKey: ["activityFeed"] });
+            queryClient.invalidateQueries({ queryKey: ["impact"] });
+        }, 8000);
+
+        return () => clearInterval(intervalId);
+    }, [fallbackMode, queryClient]);
+
+    return { toastData, rollbackToast, fallbackMode };
 }

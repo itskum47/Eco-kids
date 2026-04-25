@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 const LessonsPage = () => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState('');
+  const [statusType, setStatusType] = useState('info');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterGrade, setFilterGrade] = useState('');
   const [filterTopic, setFilterTopic] = useState('');
@@ -17,6 +19,7 @@ const LessonsPage = () => {
   const fetchLessons = async () => {
     try {
       setLoading(true);
+      setStatusMessage('');
       const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
@@ -28,6 +31,8 @@ const LessonsPage = () => {
       });
       setLessons(response.data.lessons || []);
     } catch (error) {
+      setStatusType('error');
+      setStatusMessage('Unable to load lessons right now. Please retry in a moment.');
       console.error('Failed to load lessons', error);
     } finally {
       setLoading(false);
@@ -40,10 +45,12 @@ const LessonsPage = () => {
       await axios.post(`/api/v1/lessons/${lessonId}/complete`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('Lesson completed! You earned eco-points!');
+      setStatusType('success');
+      setStatusMessage('Lesson completed. Eco-points have been added to your profile.');
       fetchLessons();
     } catch (error) {
-      alert('Failed to complete lesson');
+      setStatusType('error');
+      setStatusMessage('Could not mark lesson complete right now. Please try again.');
       console.error(error);
     }
   };
@@ -55,6 +62,17 @@ const LessonsPage = () => {
           <h1 className="text-3xl font-bold text-green-800 mb-2">Environmental Lessons</h1>
           <p className="text-gray-600">Learn about sustainability through engaging lessons</p>
         </div>
+
+        {statusMessage && (
+          <div className={`rounded-lg border px-4 py-3 mb-6 ${statusType === 'error'
+            ? 'bg-red-50 border-red-200 text-red-700'
+            : statusType === 'success'
+              ? 'bg-green-50 border-green-200 text-green-700'
+              : 'bg-blue-50 border-blue-200 text-blue-700'
+            }`}>
+            {statusMessage}
+          </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">

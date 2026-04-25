@@ -85,7 +85,10 @@ const SeasonalEventBanner = () => {
       const event = res.data.data?.[0];
 
       if (event && !dismissed.includes(event._id)) {
-        setActiveEvent(event);
+        setActiveEvent({
+          ...event,
+          endsAt: new Date(event.endsAt)
+        });
       }
     } catch (err) {
       console.warn('[SeasonalEventBanner] Error fetching active events:', err);
@@ -173,7 +176,7 @@ const SeasonalEventBanner = () => {
               <motion.div
                 className="h-full bg-white bg-opacity-80"
                 initial={{ width: '100%' }}
-                animate={{ width: ((countdown.days * 24 + countdown.hours) / (activeEvent.endsAt.getDate() === new Date().getDate() ? 24 : 168)) * 100 + '%' }}
+                animate={{ width: ((countdown.days * 24 + countdown.hours) / (new Date(activeEvent.endsAt).getDate() === new Date().getDate() ? 24 : 168)) * 100 + '%' }}
                 transition={{ duration: 60, ease: 'linear' }}
               />
             </div>

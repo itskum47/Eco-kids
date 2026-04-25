@@ -1,71 +1,43 @@
 const express = require('express');
 const router = express.Router();
-const crypto = require('crypto');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const { requireConsent } = require('../middleware/requireConsent');
 const logger = require('../utils/logger');
+const crypto = require('crypto');
+const { getSnapshotHistory } = require('../services/leaderboardSnapshotService');
+const {
+  getGlobalLeaderboard,
+  getSchoolLeaderboard,
+  getDistrictLeaderboard,
+  getUserRank,
+} = require('../services/leaderboardService');
 
-const LEADERBOARD_SALT = process.env.LEADERBOARD_ID_SALT || 'ecokids-lb-salt';
-
-/**
- * Anonymize a student entry for public leaderboards:
- * - name becomes "FirstName L." (first name + last initial)
- * - email is removed
- * - _id is replaced with a deterministic SHA-256 hash
- */
-function anonymizeEntry(user, rank) {
-  const fullName = user.name || '';
-  const parts = fullName.trim().split(/\s+/);
-  const firstName = parts[0] || 'Student';
-  const lastInitial = parts.length > 1 ? `${parts[parts.length - 1][0]}.` : '';
-  const displayName = lastInitial ? `${firstName} ${lastInitial}` : firstName;
-
-  const hashedId = crypto
+const hashLeaderboardEntries = (entries = []) =>
+  crypto
     .createHash('sha256')
-    .update(String(user._id) + LEADERBOARD_SALT)
-    .digest('hex')
-    .slice(0, 16);
-
-  return {
-    rank,
-    id: hashedId,
-    name: displayName,
-    ecoPoints: user.gamification?.ecoPoints || 0,
-    level: user.gamification?.level || 1,
-    streak: user.gamification?.streak?.current || 0,
-  };
-}
+    .update(
+      JSON.stringify(
+        entries.map((entry) => ({
+          rank: entry.rank,
+          id: entry.id,
+          ecoPoints: entry.ecoPoints,
+          level: entry.level,
+          streak: entry.streak,
+        }))
+      )
+    )
+    .digest('hex');
 
 // GET /api/v1/leaderboards/global
 // Returns global eco-points leaderboard (all students, anonymized)
 router.get('/global', async (req, res) => {
   try {
-    const User = require('../models/User');
-    const School = require('../models/School');
-
-    const eligibleSchools = await School.find({ public_leaderboard_enabled: true }).select('_id').lean();
-    const eligibleSchoolIds = eligibleSchools.map((school) => school._id);
-
-    const leaderboard = await User.find({
-      role: 'student',
-      $or: [
-        { 'profile.schoolId': { $in: eligibleSchoolIds } },
-        { schoolId: { $in: eligibleSchoolIds } }
-      ]
-    })
-      .select('name gamification.ecoPoints gamification.level gamification.streak schoolId profile.schoolId')
-      .sort({ 'gamification.ecoPoints': -1 })
-      .limit(100)
-      .populate('schoolId', 'name')
-      .lean();
+    const leaderboard = await getGlobalLeaderboard({ limit: 100, anonymize: true });
 
     res.json({
       success: true,
       count: leaderboard.length,
-      leaderboard: leaderboard.map((user, index) => ({
-        ...anonymizeEntry(user, index + 1),
-        school: user.schoolId?.name || 'Unknown',
-      })),
+      leaderboard,
     });
   } catch (error) {
     logger.error('Error fetching global leaderboard', error);
@@ -78,22 +50,13 @@ router.get('/global', async (req, res) => {
 router.get('/school/:schoolId', async (req, res) => {
   try {
     const { schoolId } = req.params;
-    const User = require('../models/User');
-
-    const leaderboard = await User.find({
-      role: 'student',
-      $or: [{ 'profile.schoolId': schoolId }, { schoolId }]
-    })
-      .select('name gamification.ecoPoints gamification.level gamification.streak')
-      .sort({ 'gamification.ecoPoints': -1 })
-      .limit(50)
-      .lean();
+    const leaderboard = await getSchoolLeaderboard({ schoolId, limit: 50, anonymize: true });
 
     res.json({
       success: true,
       schoolId,
       count: leaderboard.length,
-      leaderboard: leaderboard.map((user, index) => anonymizeEntry(user, index + 1)),
+      leaderboard,
     });
   } catch (error) {
     logger.error('Error fetching school leaderboard', error);
@@ -106,36 +69,13 @@ router.get('/school/:schoolId', async (req, res) => {
 router.get('/district/:districtId', async (req, res) => {
   try {
     const { districtId } = req.params;
-    const School = require('../models/School');
-    const User = require('../models/User');
-
-    const schools = await School.find({
-      public_leaderboard_enabled: true,
-      $or: [{ districtId }, { district: districtId }]
-    }).select('_id name').lean();
-    const schoolIds = schools.map(s => s._id);
-
-    const leaderboard = await User.find({
-      role: 'student',
-      $or: [
-        { 'profile.schoolId': { $in: schoolIds } },
-        { schoolId: { $in: schoolIds } }
-      ]
-    })
-      .select('name gamification.ecoPoints gamification.level gamification.streak schoolId profile.schoolId')
-      .sort({ 'gamification.ecoPoints': -1 })
-      .limit(100)
-      .populate('schoolId', 'name')
-      .lean();
+    const leaderboard = await getDistrictLeaderboard({ districtId, limit: 100, anonymize: true });
 
     res.json({
       success: true,
       districtId,
       count: leaderboard.length,
-      leaderboard: leaderboard.map((user, index) => ({
-        ...anonymizeEntry(user, index + 1),
-        school: user.schoolId?.name || 'Unknown',
-      })),
+      leaderboard,
     });
   } catch (error) {
     logger.error('Error fetching district leaderboard', error);
@@ -147,38 +87,84 @@ router.get('/district/:districtId', async (req, res) => {
 // Returns authenticated user's own rank (full name for self)
 router.get('/my-rank', protect, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const User = require('../models/User');
+    const rankData = await getUserRank({
+      userId: req.user.id,
+      schoolId: req.user.profile?.schoolId || req.user.schoolId,
+    });
 
-    const user = await User.findById(userId).select('name gamification.ecoPoints gamification.level').lean();
-    if (!user) {
+    if (!rankData) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const ecoPoints = user.gamification?.ecoPoints || 0;
-
-    const [globalRank, schoolRank] = await Promise.all([
-      User.countDocuments({ role: 'student', 'gamification.ecoPoints': { $gt: ecoPoints } }),
-      User.countDocuments({
-        $or: [
-          { 'profile.schoolId': req.user.profile?.schoolId },
-          { schoolId: req.user.schoolId }
-        ],
-        role: 'student',
-        'gamification.ecoPoints': { $gt: ecoPoints }
-      })
-    ]);
-
-    res.json({
-      success: true,
-      name: user.name,
-      ecoPoints,
-      globalRank: globalRank + 1,
-      schoolRank: schoolRank + 1,
-    });
+    res.json({ success: true, ...rankData });
   } catch (error) {
     logger.error('Error fetching user rank', error);
     res.status(500).json({ error: 'Failed to fetch rank' });
+  }
+});
+
+// GET /api/v1/leaderboards/snapshots
+// Returns deterministic leaderboard snapshot history for audits.
+router.get('/snapshots', protect, authorize('teacher', 'school_admin', 'district_admin', 'state_admin', 'admin'), async (req, res) => {
+  try {
+    const { type, schoolId, districtId, limit = 20 } = req.query;
+    const scope = {};
+
+    if (schoolId) scope.schoolId = schoolId;
+    if (districtId) scope.districtId = districtId;
+
+    const snapshots = await getSnapshotHistory({
+      boardType: type,
+      scope,
+      limit,
+    });
+
+    res.json({
+      success: true,
+      count: snapshots.length,
+      data: snapshots,
+    });
+  } catch (error) {
+    logger.error('Error fetching leaderboard snapshots', error);
+    res.status(500).json({ error: 'Failed to fetch leaderboard snapshots' });
+  }
+});
+
+// GET /api/v1/leaderboards/validate-determinism
+// Staff-only deterministic check: same input -> same ordered output hash.
+router.get('/validate-determinism', protect, authorize('teacher', 'school_admin', 'district_admin', 'state_admin', 'admin'), async (req, res) => {
+  try {
+    const { type = 'global', schoolId, districtId } = req.query;
+    let first = [];
+    let second = [];
+
+    if (type === 'school') {
+      if (!schoolId) return res.status(400).json({ success: false, message: 'schoolId is required for type=school' });
+      first = await getSchoolLeaderboard({ schoolId, limit: 50, anonymize: true });
+      second = await getSchoolLeaderboard({ schoolId, limit: 50, anonymize: true });
+    } else if (type === 'district') {
+      if (!districtId) return res.status(400).json({ success: false, message: 'districtId is required for type=district' });
+      first = await getDistrictLeaderboard({ districtId, limit: 100, anonymize: true });
+      second = await getDistrictLeaderboard({ districtId, limit: 100, anonymize: true });
+    } else {
+      first = await getGlobalLeaderboard({ limit: 100, anonymize: true });
+      second = await getGlobalLeaderboard({ limit: 100, anonymize: true });
+    }
+
+    const firstHash = hashLeaderboardEntries(first);
+    const secondHash = hashLeaderboardEntries(second);
+
+    return res.json({
+      success: true,
+      type,
+      deterministic: firstHash === secondHash,
+      firstHash,
+      secondHash,
+      count: first.length,
+    });
+  } catch (error) {
+    logger.error('Error validating leaderboard determinism', error);
+    res.status(500).json({ success: false, message: 'Failed to validate leaderboard determinism' });
   }
 });
 

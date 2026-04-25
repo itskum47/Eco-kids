@@ -148,6 +148,18 @@ async function rollbackReward({ userId, sourceId, sourceModel, reason }) {
  * Generates idempotencyKey from metadata when callers haven't been migrated yet.
  */
 async function awardEcoPoints(userId, points, reason, metadata = {}) {
+    const verificationStatus = metadata?.verification?.status;
+    const allowedVerificationStatuses = new Set([
+        'teacher_approved',
+        'appeal_approved',
+        'followup_verified',
+        'ai_approved'
+    ]);
+
+    if (!allowedVerificationStatuses.has(verificationStatus)) {
+        throw new Error('[RewardEngine] awardEcoPoints requires verified action metadata');
+    }
+
     const key = metadata.idempotencyKey
         || `${userId}:${metadata.sourceId || 'none'}:${metadata.sourceType || 'activity'}:${reason}`;
 

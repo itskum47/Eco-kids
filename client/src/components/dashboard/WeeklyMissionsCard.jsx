@@ -63,6 +63,19 @@ const WeeklyMissionsCard = () => {
     );
   }
 
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="eco-card p-6 md:p-8 border border-red-200 bg-red-50"
+      >
+        <p className="text-lg font-bold text-red-700 mb-2">Unable to load weekly missions</p>
+        <p className="text-sm text-red-600">Please try again in a moment. Your streak and points are safe.</p>
+      </motion.div>
+    );
+  }
+
   // Empty state: no missions available
   if (!missions) {
     return (

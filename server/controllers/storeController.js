@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const StoreItem = require('../models/StoreItem');
 const Redemption = require('../models/Redemption');
 const User = require('../models/User');
+const ActivitySubmission = require('../models/ActivitySubmission');
 const { featureFlags } = require('../config/featureFlags');
 
 const ensureEnabled = (res) => {
@@ -55,6 +56,38 @@ exports.redeemItem = async (req, res) => {
 
     const { storeItemId, quantity = 1, note } = req.body;
     const userId = req.user.id;
+
+    const riskWindowStart = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const recentSubmissions = await ActivitySubmission.find({
+      user: userId,
+      createdAt: { $gte: riskWindowStart }
+    }).select('status flags').lean();
+
+    const totalSubmissions = recentSubmissions.length;
+    const flaggedSubmissions = recentSubmissions.filter((s) => Array.isArray(s.flags) && s.flags.length > 0).length;
+    const rejectedSubmissions = recentSubmissions.filter((s) => ['rejected', 'teacher_rejected', 'appeal_rejected'].includes(s.status)).length;
+    const rejectionRatio = totalSubmissions > 0 ? rejectedSubmissions / totalSubmissions : 0;
+
+    const riskReasons = [];
+    if (flaggedSubmissions >= 3) riskReasons.push('multiple_flagged_submissions_30d');
+    if (totalSubmissions >= 5 && rejectionRatio >= 0.6) riskReasons.push('high_rejection_ratio_30d');
+
+    const riskScore = Math.min(
+      100,
+      Math.round(
+        (Math.min(flaggedSubmissions, 5) * 15) +
+        ((totalSubmissions >= 5 ? rejectionRatio : 0) * 50)
+      )
+    );
+
+    if (riskScore >= 70) {
+      return res.status(403).json({
+        success: false,
+        message: 'Redemption temporarily blocked due to risk checks. Contact your teacher/admin for review.',
+        riskScore,
+        riskReasons
+      });
+    }
 
     const item = await StoreItem.findOne({ _id: storeItemId, isActive: true });
     if (!item) {
@@ -124,15 +157,19 @@ exports.redeemItem = async (req, res) => {
     }
 
     const redemptionCode = `ECO-${Date.now()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
+    const requiresManualApproval = riskScore >= 40 || item.category !== 'digital';
+
     const redemption = await Redemption.create({
       user: userId,
       storeItem: item._id,
       quantity,
       ecoCoinsSpent: totalCost,
-      status: item.category === 'digital' ? 'fulfilled' : 'pending',
+      status: requiresManualApproval ? 'pending' : 'fulfilled',
       redemptionCode,
       note,
-      fulfilledAt: item.category === 'digital' ? new Date() : undefined
+      fulfilledAt: requiresManualApproval ? undefined : new Date(),
+      riskScore,
+      riskReasons
     });
 
     return res.status(201).json({

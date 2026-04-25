@@ -86,18 +86,11 @@ exports.plantTree = asyncHandler(async (req, res) => {
     { plantedTreeId: plantedTree._id, followUpNumber: 3, dueDate: followUpDates[2], pointsAwarded: FOLLOW_UP_POINTS[3] }
   ]);
 
-  await awardEcoPoints(req.user.id, 50, 'tree-planting-with-species', {
-    sourceType: 'tree',
-    sourceModel: 'PlantedTree',
-    sourceId: plantedTree._id,
-    idempotencyKey: `tree:plant:${plantedTree._id.toString()}`
-  });
-
   res.status(201).json({
     success: true,
     data: {
       plantedTreeId: plantedTree._id,
-      pointsAwarded: 50,
+      pointsAwarded: 0,
       followUpDates
     }
   });
@@ -184,8 +177,18 @@ exports.reviewTreeFollowUp = asyncHandler(async (req, res) => {
         sourceType: 'tree-follow-up',
         sourceModel: 'FollowUpTask',
         sourceId: followUpTask._id,
+        verification: {
+          status: 'followup_verified',
+          reviewerId: req.user.id,
+          verifiedAt: new Date().toISOString()
+        },
         idempotencyKey: `tree:followup:${followUpTask._id.toString()}`
       });
+
+      const treeOwner = await User.findById(plantedTreeOwnerId);
+      if (treeOwner) {
+        await treeOwner.updateStreak();
+      }
 
       await Notification.create({
         userId: plantedTreeOwnerId,
