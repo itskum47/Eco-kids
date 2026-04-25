@@ -1,6 +1,8 @@
 const EcoPointsTransaction = require('../models/EcoPointsTransaction');
 const User = require('../models/User');
 const asyncHandler = require('../middleware/async');
+const { extractScoreComponentsFromUser } = require('../services/scoringAuthorityService');
+const { getUserRank } = require('../services/leaderboardService');
 
 // @desc    Get user's eco-points summary
 // @route   GET /api/eco-points/summary
@@ -18,9 +20,9 @@ exports.getEcoPointsSummary = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: {
-      totalEcoPoints: user.ecoPointsTotal,
+      totalEcoPoints: extractScoreComponentsFromUser(user).score,
       currentLevel: user.gamification.level,
-      gamificationEcoPoints: user.gamification.ecoPoints,
+      gamificationEcoPoints: extractScoreComponentsFromUser(user).score,
       badges: user.gamification.badges,
       streak: user.gamification.streak
     }
@@ -144,19 +146,20 @@ exports.getLeaderboard = asyncHandler(async (req, res) => {
 
   // All-time leaderboard (original behavior, enhanced with scope)
   const users = await User.find(query)
-    .select('name profile.school profile.grade ecoPointsTotal gamification')
-    .sort({ ecoPointsTotal: -1 })
+    .select('name profile.school profile.grade gamification')
+    .sort({ 'gamification.ecoPoints': -1 })
     .skip(parseInt(offset))
     .limit(parseInt(limit));
 
   const total = await User.countDocuments(query);
 
   const leaderboard = users.map((user, index) => ({
+    ...extractScoreComponentsFromUser(user),
     rank: parseInt(offset) + index + 1,
     name: user.name,
     school: user.profile?.school || 'N/A',
     grade: user.profile?.grade || 'N/A',
-    ecoPoints: user.ecoPointsTotal,
+    ecoPoints: extractScoreComponentsFromUser(user).score,
     badges: user.gamification.badges.length,
     level: user.gamification.level
   }));
@@ -183,8 +186,8 @@ exports.getSchoolLeaderboard = asyncHandler(async (req, res) => {
     isActive: true,
     'profile.school': schoolName
   })
-    .select('name profile.grade ecoPointsTotal gamification')
-    .sort({ ecoPointsTotal: -1 })
+    .select('name profile.grade gamification')
+    .sort({ 'gamification.ecoPoints': -1 })
     .skip(parseInt(offset))
     .limit(parseInt(limit));
 
@@ -195,10 +198,11 @@ exports.getSchoolLeaderboard = asyncHandler(async (req, res) => {
   });
 
   const leaderboard = users.map((user, index) => ({
+    ...extractScoreComponentsFromUser(user),
     rank: parseInt(offset) + index + 1,
     name: user.name,
     grade: user.profile?.grade || 'N/A',
-    ecoPoints: user.ecoPointsTotal,
+    ecoPoints: extractScoreComponentsFromUser(user).score,
     badges: user.gamification.badges.length,
     level: user.gamification.level
   }));
@@ -225,18 +229,7 @@ exports.getUserRanking = asyncHandler(async (req, res) => {
     });
   }
 
-  const globalRank = await User.countDocuments({
-    ecoPointsTotal: { $gt: user.ecoPointsTotal },
-    role: 'student',
-    isActive: true
-  });
-
-  const schoolRank = await User.countDocuments({
-    ecoPointsTotal: { $gt: user.ecoPointsTotal },
-    'profile.school': user.profile.school,
-    role: 'student',
-    isActive: true
-  });
+  const rankData = await getUserRank({ userId: user._id, schoolId: user.profile?.schoolId });
 
   const totalStudents = await User.countDocuments({
     role: 'student',
@@ -252,11 +245,11 @@ exports.getUserRanking = asyncHandler(async (req, res) => {
   res.status(200).json({
     success: true,
     data: {
-      globalRank: globalRank + 1,
+      globalRank: rankData?.globalRank || null,
       globalTotal: totalStudents,
-      schoolRank: schoolRank + 1,
+      schoolRank: rankData?.schoolRank || null,
       schoolTotal: schoolStudents,
-      userEcoPoints: user.ecoPointsTotal
+      userEcoPoints: extractScoreComponentsFromUser(user).score
     }
   });
 });
@@ -269,12 +262,12 @@ exports.getEcoPointsStats = asyncHandler(async (req, res) => {
 
   const avgEcoPoints = await User.aggregate([
     { $match: { role: 'student', isActive: true } },
-    { $group: { _id: null, avg: { $avg: '$ecoPointsTotal' } } }
+    { $group: { _id: null, avg: { $avg: '$gamification.ecoPoints' } } }
   ]);
 
   const totalEcoPointsGenerated = await User.aggregate([
     { $match: { role: 'student', isActive: true } },
-    { $group: { _id: null, total: { $sum: '$ecoPointsTotal' } } }
+    { $group: { _id: null, total: { $sum: '$gamification.ecoPoints' } } }
   ]);
 
   const topCategory = await EcoPointsTransaction.aggregate([
@@ -303,15 +296,16 @@ exports.getTopPerformers = asyncHandler(async (req, res) => {
   const { limit = 10 } = req.query;
 
   const topPerformers = await User.find({ role: 'student', isActive: true })
-    .select('name profile.school ecoPointsTotal gamification')
-    .sort({ ecoPointsTotal: -1 })
+    .select('name profile.school gamification')
+    .sort({ 'gamification.ecoPoints': -1 })
     .limit(parseInt(limit));
 
   const data = topPerformers.map((user, index) => ({
+    ...extractScoreComponentsFromUser(user),
     rank: index + 1,
     name: user.name,
     school: user.profile?.school || 'N/A',
-    ecoPoints: user.ecoPointsTotal,
+    ecoPoints: extractScoreComponentsFromUser(user).score,
     badges: user.gamification.badges.length,
     level: user.gamification.level
   }));

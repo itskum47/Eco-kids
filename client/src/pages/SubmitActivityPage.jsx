@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import api from '../utils/api';
-import { useOfflineQueue } from '../hooks/useOfflineQueue';  // Phase 6: Offline support
+import { useOfflineQueue } from '../hooks/useOfflineQueue';
+import SubmissionCelebration from '../components/SubmissionCelebration';
 import Navbar from '../components/layout/Navbar';
 import ActivityTypeSelect from '../components/submit/ActivityTypeSelect';
 import ActivityFormInputs from '../components/submit/ActivityFormInputs';
@@ -58,22 +59,33 @@ export default function SubmitActivityPage() {
   };
   const [view, setView] = useState('submit'); // 'submit' or 'mySubmissions'
   const [loading, setLoading] = useState(false);
+  const [aiStage, setAiStage] = useState(0); // 0=idle 1=uploading 2=analysing 3=awarding
   const [error, setError] = useState('');
-  const [submissionMessage, setSubmissionMessage] = useState('');  // For offline feedback
+  const [submissionMessage, setSubmissionMessage] = useState('');
   const [submissions, setSubmissions] = useState([]);
   const [appealDrafts, setAppealDrafts] = useState({});
   const [appealSubmitting, setAppealSubmitting] = useState({});
   const [appealSuccess, setAppealSuccess] = useState({});
+  const [imageFile, setImageFile] = useState(null);
+  const [reward, setReward] = useState(null); // { points, activityLabel } — triggers confetti
   const [formData, setFormData] = useState({
     activityType: '',
     description: '',
-    imageUrl: '',
     latitude: '',
     longitude: ''
   });
 
   // Persistent unique key preventing duplicate retry bugs (P6 Hardening)
   const idempotencyKeyRef = useRef(uuidv4());
+
+  // Drive AI stage messages — transitions fast enough to feel alive, slow enough to read
+  useEffect(() => {
+    if (!loading) { setAiStage(0); return; }
+    setAiStage(1);                              // immediate: uploading
+    const t1 = setTimeout(() => setAiStage(2), 600); // AI analysing — fast uploads land in ~400ms
+    const t2 = setTimeout(() => setAiStage(3), 3000); // neutral loop if network is slow
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [loading]);
 
   useEffect(() => {
     // Load my submissions if coming from my-submissions route
@@ -100,6 +112,10 @@ export default function SubmitActivityPage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (file) => {
+    setImageFile(file);
   };
 
   const handleStartAppeal = (submissionId) => {
@@ -139,11 +155,8 @@ export default function SubmitActivityPage() {
     setError('');
     setSubmissionMessage('');
 
-    // Form Validation Styles are handled inline via `error` state checking emptiness
-    if (!formData.activityType || !formData.description.trim() || !formData.imageUrl.trim()) {
-      setError('Please fill in all required fields (Type, Description, Image URL) correctly.');
-
-      // Animated shake effect on form elements
+    if (!formData.activityType || !formData.description.trim() || !imageFile) {
+      setError('Please fill in all required fields and attach a photo.');
       const form = document.getElementById('activity-form');
       if (form) {
         form.classList.add('animate-[shake_0.5s_ease-in-out]');
@@ -154,44 +167,69 @@ export default function SubmitActivityPage() {
 
     setLoading(true);
     try {
-      const activityData = {
-        activityType: formData.activityType,
-        description: formData.description,
-        imageUrl: formData.imageUrl,
-        latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
-        longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
-        idempotencyKey: idempotencyKeyRef.current
-      };
-
-      let response;
-
-      // Phase 6: Check if online
       if (isOnline) {
-        // Submit online
-        response = await api.activity.submitActivity(activityData);
+        // Build multipart form — server receives a real file buffer for Cloudinary
+        const payload = new FormData();
+        payload.append('file', imageFile, imageFile.name || 'evidence.jpg');
+        payload.append('activityType', formData.activityType);
+        payload.append('description', formData.description);
+        if (formData.latitude)  payload.append('latitude',  formData.latitude);
+        if (formData.longitude) payload.append('longitude', formData.longitude);
+        payload.append('idempotencyKey', idempotencyKeyRef.current);
+
+        const response = await api.activity.submitActivityMultipart(payload);
 
         if (response.success) {
-          idempotencyKeyRef.current = uuidv4(); // Reset idempotency
-          setFormData({ activityType: '', description: '', imageUrl: '', latitude: '', longitude: '' });
-          setSubmissionMessage('✅ Activity submitted! Waiting for teacher approval...');
+          idempotencyKeyRef.current = uuidv4();
+          const submittedLabel = ACTIVITY_TYPES.find(a => a.value === formData.activityType)?.label || formData.activityType;
+          const earnedPoints = response.data?.pointsAwarded || response.data?.submission?.pointsAwarded || 50;
+          setFormData({ activityType: '', description: '', latitude: '', longitude: '' });
+          setImageFile(null);
+          // 🎉 Trigger celebration — timer matches component's internal 3800ms auto-dismiss
+          setReward({ points: earnedPoints, activityLabel: submittedLabel });
           setTimeout(() => {
+            setReward(null);
             setView('mySubmissions');
             loadMySubmissions();
-          }, 1500);
+          }, 3800);
         }
       } else {
-        // Submit offline
-        const offlineResult = await submitOfflineActivity(activityData);
-        
+        // Offline path: File objects cannot be stored in IndexedDB directly.
+        // Convert to base64 string first, then store as JSON-serializable data.
+        let imageBase64 = null;
+        let imageMime = null;
+        if (imageFile) {
+          try {
+            imageBase64 = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result); // data:image/...;base64,...
+              reader.onerror = reject;
+              reader.readAsDataURL(imageFile);
+            });
+            imageMime = imageFile.type || 'image/jpeg';
+          } catch {
+            // If conversion fails, submit without image — server will escalate to teacher
+          }
+        }
+
+        const offlineResult = await submitOfflineActivity({
+          activityType: formData.activityType,
+          description: formData.description,
+          latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
+          longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+          idempotencyKey: idempotencyKeyRef.current,
+          imageBase64,   // serializable for IndexedDB
+          imageMime
+        });
+
         if (offlineResult.success) {
-          idempotencyKeyRef.current = uuidv4(); // Reset idempotency
-          setFormData({ activityType: '', description: '', imageUrl: '', latitude: '', longitude: '' });
-          setSubmissionMessage('📱 Saved offline! Your activity will sync when you reconnect.');
-          setTimeout(() => {
-            setView('mySubmissions');
-          }, 1500);
+          idempotencyKeyRef.current = uuidv4();
+          setFormData({ activityType: '', description: '', latitude: '', longitude: '' });
+          setImageFile(null);
+          setSubmissionMessage('📱 Saved offline! Will sync automatically when you reconnect.');
+          setTimeout(() => setView('mySubmissions'), 1500);
         } else {
-          setError('Failed to save activity. Please try again.');
+          setError('Failed to save activity offline. Please try again.');
         }
       }
     } catch (err) {
@@ -205,6 +243,17 @@ export default function SubmitActivityPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[var(--bg)] pb-24 md:pb-10 overflow-x-hidden relative" style={lightPageVars}>
+      {/* 🎉 AI Approval Celebration — appears on top of everything */}
+      <AnimatePresence>
+        {reward && (
+          <SubmissionCelebration
+            points={reward.points}
+            activityLabel={reward.activityLabel}
+            onDone={() => setReward(null)}
+          />
+        )}
+      </AnimatePresence>
+
       <Navbar />
 
       <main className="max-w-[760px] mx-auto px-4 sm:px-6 py-6 md:py-10 relative z-10">
@@ -334,6 +383,7 @@ export default function SubmitActivityPage() {
                 <ActivityFormInputs
                   formData={formData}
                   handleChange={handleChange}
+                  handleFileChange={handleFileChange}
                   error={error}
                 />
 
@@ -342,9 +392,22 @@ export default function SubmitActivityPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="btn-primary flex-1 shadow-[0_0_20px_rgba(108,71,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed group"
+                    className={`btn-primary flex-1 shadow-[0_0_20px_rgba(108,71,255,0.2)] disabled:cursor-not-allowed group transition-all duration-300 ${
+                      loading ? 'bg-green-500 shadow-[0_0_24px_rgba(34,197,94,0.5)]' : ''
+                    }`}
                   >
-                    <span>{loading ? 'Submitting Data...' : 'Submit for Verification'}</span>
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        <span className="animate-pulse">
+                          {aiStage === 1 && '📤 Uploading photo…'}
+                          {aiStage === 2 && '🤖 AI is analysing…'}
+                          {aiStage === 3 && '🔄 Verifying…'}
+                        </span>
+                      </span>
+                    ) : (
+                      <span>Submit for Verification</span>
+                    )}
                     {!loading && <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>}
                   </button>
                   <button

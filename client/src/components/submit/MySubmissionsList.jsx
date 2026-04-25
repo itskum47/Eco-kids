@@ -1,6 +1,39 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 
+const getConfidenceLabel = (score) => {
+    const numeric = Number(score);
+    if (!Number.isFinite(numeric)) return null;
+    if (numeric >= 80) return 'High';
+    if (numeric >= 50) return 'Medium';
+    return 'Low';
+};
+
+const getVerifierIdentity = (submission) => {
+    const verifier = submission.verifiedBy || submission.reviewedBy || submission.appealResolvedBy;
+    if (!verifier) return null;
+
+    const roleLabel = verifier.role ? verifier.role.replace(/_/g, ' ') : 'Teacher/Admin';
+    return `${verifier.name || 'Reviewer'} (${roleLabel})`;
+};
+
+const getVerificationTimestamp = (submission) => {
+    return submission.reviewedAt || submission.appealResolvedAt || null;
+};
+
+const getAppealResolutionLabel = (submission) => {
+    if (submission.appealDecision === 'approved') return 'Appeal Approved';
+    if (submission.appealDecision === 'rejected' || submission.status === 'appeal_rejected') return 'Appeal Rejected';
+    if (submission.status === 'appealed') return 'Appeal Pending';
+    return null;
+};
+
+const hasFraudFlags = (submission) => {
+    const directFlags = Array.isArray(submission.flags) && submission.flags.length > 0;
+    const aiFlags = Array.isArray(submission.aiValidation?.flags) && submission.aiValidation.flags.length > 0;
+    return directFlags || aiFlags;
+};
+
 const STATUS_BADGE = {
     pending: { bg: 'bg-[rgba(255,204,0,0.1)]', text: 'text-[var(--amber)]', border: 'border-[var(--amber)]', icon: '⏳', label: 'In Review' },
     approved: { bg: 'bg-[rgba(0,255,136,0.1)]', text: 'text-[var(--g1)]', border: 'border-[var(--g1)]', icon: '✅', label: 'Approved' },
@@ -21,6 +54,17 @@ const MySubmissionsList = ({
     onAppealReasonChange,
     onSubmitAppeal
 }) => {
+    const rewardTimeline = submissions
+        .filter((sub) => ['approved', 'teacher_approved'].includes(sub.status))
+        .map((sub) => ({
+            id: sub._id,
+            points: Number(sub.activityPoints || 0),
+            reason: `Verified ${String(sub.activityType || 'activity').replace(/-/g, ' ')}`,
+            timestamp: sub.reviewedAt || sub.updatedAt || sub.createdAt
+        }))
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 5);
+
     if (submissions.length === 0) {
         return (
             <motion.div
@@ -45,6 +89,29 @@ const MySubmissionsList = ({
 
     return (
         <div className="grid gap-6">
+            {rewardTimeline.length > 0 && (
+                <div className="eco-card p-4 md:p-5 border border-green-200/60 dark:border-green-500/30">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-ui font-bold text-sm md:text-base text-gray-900 dark:text-[var(--t1)]">Reward Timeline</h3>
+                        <span className="text-[10px] uppercase tracking-wider font-bold text-green-700 dark:text-green-400">Verified Rewards Only</span>
+                    </div>
+                    <div className="grid gap-2">
+                        {rewardTimeline.map((entry) => (
+                            <div
+                                key={entry.id}
+                                className="rounded-lg border border-green-200 dark:border-green-500/30 bg-green-50/70 dark:bg-green-900/20 px-3 py-2 flex items-center justify-between"
+                            >
+                                <div>
+                                    <p className="text-xs font-ui font-semibold text-green-800 dark:text-green-300">{entry.reason}</p>
+                                    <p className="text-[11px] text-green-700/80 dark:text-green-200/80">{new Date(entry.timestamp).toLocaleString()}</p>
+                                </div>
+                                <span className="text-xs font-bold text-green-800 dark:text-green-300">+{entry.points} EP</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {submissions.map((sub, idx) => {
                 const statusItem = STATUS_BADGE[sub.status] || STATUS_BADGE.pending;
                 const canAppeal = ['rejected', 'teacher_rejected'].includes(sub.status) && !sub.appealedAt;
@@ -105,6 +172,28 @@ const MySubmissionsList = ({
                                     <p className="font-ui text-sm text-gray-600 dark:text-[var(--t2)] leading-relaxed line-clamp-2 md:line-clamp-3 mb-4">
                                         "{sub.evidence?.description || sub.description}"
                                     </p>
+
+                                    {(sub.status === 'teacher_approved' || sub.status === 'approved' || sub.status === 'teacher_rejected' || sub.status === 'rejected' || sub.status === 'appeal_rejected' || sub.status === 'appealed') && (
+                                        <div className="mb-4 rounded-lg border border-gray-300 dark:border-[var(--b2)] bg-white dark:bg-[var(--s2)] p-3">
+                                            <p className="text-[10px] uppercase tracking-wider font-bold text-gray-500 dark:text-[var(--t3)] mb-2">Verification Details</p>
+                                            <div className="grid gap-1 text-xs text-gray-700 dark:text-[var(--t2)]">
+                                                <p><span className="font-bold">Verified by:</span> {getVerifierIdentity(sub) || 'Pending reviewer assignment'}</p>
+                                                <p><span className="font-bold">Confidence:</span> {getConfidenceLabel(sub.aiValidation?.confidenceScore) || 'Manual review'}</p>
+                                                <p><span className="font-bold">Timestamp:</span> {getVerificationTimestamp(sub) ? new Date(getVerificationTimestamp(sub)).toLocaleString() : 'Pending review'}</p>
+                                                {getAppealResolutionLabel(sub) && (
+                                                    <p><span className="font-bold">Appeal:</span> {getAppealResolutionLabel(sub)}</p>
+                                                )}
+                                                {sub.appealResolvedAt && (
+                                                    <p><span className="font-bold">Appeal Resolved At:</span> {new Date(sub.appealResolvedAt).toLocaleString()}</p>
+                                                )}
+                                            </div>
+                                            {(sub.status === 'teacher_approved' || sub.status === 'approved') && !hasFraudFlags(sub) && (
+                                                <div className="mt-2 inline-flex items-center gap-1 rounded-full border border-green-300 bg-green-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-green-700">
+                                                    🛡 Fraud Check Passed
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Feedback / Status Footer */}
@@ -119,8 +208,10 @@ const MySubmissionsList = ({
                                             </div>
                                         </div>
                                     ) : sub.impactApplied ? (
-                                        <div className="flex items-center gap-2 text-[var(--g1)] font-ui font-bold text-xs uppercase tracking-wider">
-                                            ✨ Impact Applied
+                                        <div className="w-full rounded-lg border border-green-300 bg-green-50 p-3">
+                                            <p className="text-[10px] uppercase tracking-wider font-bold text-green-700 mb-1">Outcome</p>
+                                            <p className="text-xs text-green-800 font-semibold">Before: Pending Review → After: Verified & Impact Applied</p>
+                                            <p className="text-xs text-green-700 mt-1">Reward reason: Verified activity credited {sub.activityPoints || 0} eco points.</p>
                                         </div>
                                     ) : (
                                         <div className="flex items-center gap-2 text-gray-500 dark:text-[var(--t3)] font-ui font-bold text-[10px] uppercase tracking-wider">

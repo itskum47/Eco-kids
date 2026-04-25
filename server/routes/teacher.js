@@ -17,10 +17,12 @@ router.get('/dashboard', teacherController.getTeacherDashboard);
 router.get('/submissions/pending', pagination, teacherController.getPendingSubmissions);
 router.patch('/submissions/:id', teacherController.updateSubmissionStatus);
 router.post('/activities/batch-approve', teacherController.batchApproveActivities);
+router.post('/realtime/manual-trigger', teacherController.manualRealtimeTrigger);
 
 // Student Management and Reporting
 router.get('/students', pagination, teacherController.getTeacherStudents);
 router.get('/class-impact', teacherController.getClassImpact);
+router.get('/realtime/rank-history/:userId', teacherController.getRankTransitionHistory);
 
 // Assignments
 router.get('/assignments', teacherController.getAssignments);

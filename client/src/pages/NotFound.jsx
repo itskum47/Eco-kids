@@ -142,7 +142,7 @@ const NotFound = () => {
               🧠 Quizzes
             </Link>
             <Link
-              to="/leaderboard"
+              to="/leaderboards"
               className="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm rounded-full hover:bg-yellow-200 transition-colors"
             >
               🏆 Leaderboard

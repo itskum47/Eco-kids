@@ -229,57 +229,72 @@ export const useOfflineQueue = () => {
     setIsSyncing(true);
     try {
       const submissions = await getPendingSubmissions();
-
       if (submissions.length === 0) {
         setIsSyncing(false);
         return { success: true, synced: 0 };
       }
 
       const token = localStorage.getItem('token');
+      let successCount = 0;
 
-      // Send all submissions in one batch request
-      const response = await fetch('/api/v1/activity/sync-offline', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ submissions })
-      });
+      // Process one-by-one so each gets its own AI verification job
+      for (const submission of submissions) {
+        try {
+          let response;
 
-      if (!response.ok) {
-        throw new Error('Failed to sync submissions');
-      }
+          if (submission.imageBase64) {
+            // Convert base64 back to Blob and POST as multipart
+            const byteString = atob(submission.imageBase64.split(',')[1]);
+            const mime = submission.imageMime || 'image/jpeg';
+            const ab = new ArrayBuffer(byteString.length);
+            const ia = new Uint8Array(ab);
+            for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+            const blob = new Blob([ab], { type: mime });
 
-      const data = await response.json();
+            const fd = new FormData();
+            fd.append('file', blob, 'offline-evidence.jpg');
+            fd.append('activityType', submission.activityType);
+            fd.append('description', submission.description);
+            if (submission.latitude)  fd.append('latitude',  String(submission.latitude));
+            if (submission.longitude) fd.append('longitude', String(submission.longitude));
+            fd.append('idempotencyKey', submission.idempotencyKey || `offline-${submission.id}`);
 
-      // Delete successfully synced submissions
-      if (data.data?.results) {
-        for (const result of data.data.results) {
-          if (result.success) {
-            // Find matching submission by idempotencyKey
-            const submission = submissions.find(s => s.idempotencyKey === result.idempotencyKey);
-            if (submission) {
-              await deleteOfflineSubmission(submission.id);
-            }
+            response = await fetch('/api/v1/activity/submit', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` }, // no Content-Type — browser sets boundary
+              body: fd
+            });
+          } else {
+            // No image — fall back to JSON endpoint (teacher will review)
+            response = await fetch('/api/v1/activity/sync-offline', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ submissions: [submission] })
+            });
           }
+
+          if (response.ok) {
+            await deleteOfflineSubmission(submission.id);
+            successCount++;
+          }
+        } catch {
+          // Continue syncing remaining; this one will retry next time online
         }
       }
 
-      setPendingCount(Math.max(0, pendingCount - (data.data?.successCount || 0)));
+      setPendingCount(prev => Math.max(0, prev - successCount));
       setIsSyncing(false);
-
-      return {
-        success: data.success,
-        synced: data.data?.successCount || 0,
-        failed: data.data?.failureCount || 0
-      };
+      return { success: true, synced: successCount, failed: submissions.length - successCount };
     } catch (error) {
       console.error('Failed to sync offline submissions:', error);
       setIsSyncing(false);
       return { success: false, error };
     }
-  }, [isSyncing, isOnline, pendingCount]);
+  }, [isSyncing, isOnline]);
+
 
   return {
     isOnline,

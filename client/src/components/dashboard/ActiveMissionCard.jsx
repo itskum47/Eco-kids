@@ -2,18 +2,21 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 
-const ActiveMissionCard = () => {
-    // Mock mission data for demonstration purposes
-    const mission = {
-        title: 'Plastic Patrol',
-        deadline: '3 days left',
-        tasks: [
-            { id: 1, text: 'Collect 10 plastic bottles', completed: true },
-            { id: 2, text: 'Drop at recycling center', completed: false },
-            { id: 3, text: 'Upload photo proof', completed: false }
-        ],
-        progress: 33
-    };
+const ActiveMissionCard = ({ mission, loading = false, error = null }) => {
+    const missionTitle = mission?.title || 'No Active Mission';
+    const missionDeadline = mission?.dueDate
+        ? `${Math.max(Math.ceil((new Date(mission.dueDate) - new Date()) / (1000 * 60 * 60 * 24)), 0)} days left`
+        : 'Awaiting assignment';
+    const missionTasks = mission
+        ? [
+            {
+                id: 1,
+                text: mission.description || 'Complete your assigned mission',
+                completed: mission.status === 'Submitted'
+            }
+        ]
+        : [];
+    const missionProgress = mission?.status === 'Submitted' ? 100 : mission ? 25 : 0;
 
     return (
         <div className="relative p-[1px] rounded-xl overflow-hidden mt-2">
@@ -29,15 +32,30 @@ const ActiveMissionCard = () => {
                         </span>
                     </div>
                     <span className="font-mono text-[11px] text-[var(--t2)] font-medium">
-                        ⏳ {mission.deadline}
+                        ⏳ {missionDeadline}
                     </span>
                 </div>
 
-                <h3 className="font-display text-[22px] text-[var(--t1)] mb-4">{mission.title}</h3>
+                <h3 className="font-display text-[22px] text-[var(--t1)] mb-4">{loading ? 'Loading mission...' : error ? 'Mission Unavailable' : missionTitle}</h3>
 
                 {/* Task Pills */}
                 <div className="flex flex-col gap-2 mb-6">
-                    {mission.tasks.map(task => (
+                    {loading ? (
+                        <div className="flex items-center gap-2 text-xs md:text-sm px-3 py-2 rounded-lg border bg-[var(--s2)] border-[var(--b2)] text-[var(--t2)] animate-pulse">
+                            <span className="flex-shrink-0 text-base">⏳</span>
+                            <span>Fetching your current mission...</span>
+                        </div>
+                    ) : error ? (
+                        <div className="flex items-center gap-2 text-xs md:text-sm px-3 py-2 rounded-lg border bg-red-50 border-red-200 text-red-700">
+                            <span className="flex-shrink-0 text-base">⚠️</span>
+                            <span>{error}</span>
+                        </div>
+                    ) : missionTasks.length === 0 ? (
+                        <div className="flex items-center gap-2 text-xs md:text-sm px-3 py-2 rounded-lg border bg-[var(--s2)] border-[var(--b2)] text-[var(--t2)]">
+                            <span className="flex-shrink-0 text-base">🧭</span>
+                            <span>No mission assigned yet. Check back after teacher assignment.</span>
+                        </div>
+                    ) : missionTasks.map(task => (
                         <div
                             key={task.id}
                             className={`flex items-center gap-2 text-xs md:text-sm px-3 py-2 rounded-lg border ${task.completed ? 'bg-[rgba(0,255,136,0.05)] border-[rgba(0,255,136,0.2)] text-[var(--g1)]' : 'bg-[var(--s2)] border-[var(--b2)] text-[var(--t2)]'}`}
@@ -54,7 +72,7 @@ const ActiveMissionCard = () => {
                 <div className="w-full h-2 bg-[var(--s2)] rounded-full overflow-hidden mb-6 relative">
                     <motion.div
                         initial={{ width: 0 }}
-                        animate={{ width: `${mission.progress}%` }}
+                        animate={{ width: `${missionProgress}%` }}
                         transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
                         className="absolute top-0 left-0 h-full bg-gradient-to-r from-[var(--g1)] to-[var(--c1)] rounded-full"
                     >
@@ -68,7 +86,7 @@ const ActiveMissionCard = () => {
                     to="/submit-activity"
                     className="btn-eco w-full shadow-[0_0_20px_rgba(0,255,136,0.15)] flex justify-between items-center group"
                 >
-                    <span>Complete Next Task</span>
+                    <span>{loading ? 'Loading...' : error ? 'Retry Later' : mission ? 'Complete Next Task' : 'Log First Activity'}</span>
                     <span className="transition-transform group-hover:translate-x-1">→</span>
                 </Link>
             </div>

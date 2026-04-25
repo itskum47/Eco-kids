@@ -502,17 +502,28 @@ UserSchema.methods.updateEnvironmentalImpact = function (impactData) {
   return this.save();
 };
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+function toUtcDayKey(value) {
+  const date = new Date(value);
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
 // Update streak
-UserSchema.methods.updateStreak = function () {
-  const today = new Date();
+UserSchema.methods.updateStreak = function (referenceDate = new Date()) {
+  const today = new Date(referenceDate);
   const lastActivity = this.gamification.streak.lastActivity;
+  const todayKey = toUtcDayKey(today);
 
   if (!lastActivity) {
     // First activity
     this.gamification.streak.current = 1;
-    this.gamification.streak.longest = 1;
+    this.gamification.streak.longest = Math.max(this.gamification.streak.longest || 0, 1);
+    this.gamification.streak.lastActivity = new Date(todayKey);
+    return this.save();
   } else {
-    const daysDiff = Math.floor((today - lastActivity) / (1000 * 60 * 60 * 24));
+    const lastActivityKey = toUtcDayKey(lastActivity);
+    const daysDiff = Math.round((todayKey - lastActivityKey) / DAY_IN_MS);
 
     if (daysDiff === 1) {
       // Consecutive day
@@ -520,14 +531,20 @@ UserSchema.methods.updateStreak = function () {
       if (this.gamification.streak.current > this.gamification.streak.longest) {
         this.gamification.streak.longest = this.gamification.streak.current;
       }
+      this.gamification.streak.lastActivity = new Date(todayKey);
     } else if (daysDiff > 1) {
       // Streak broken
       this.gamification.streak.current = 1;
+      this.gamification.streak.lastActivity = new Date(todayKey);
+    } else if (daysDiff === 0) {
+      // Same UTC day, do not mutate current/longest.
+      this.gamification.streak.lastActivity = new Date(todayKey);
+    } else {
+      // Guard against clock skew or stale back-dated calls.
+      return this.save();
     }
-    // If daysDiff === 0, same day, no change needed
   }
 
-  this.gamification.streak.lastActivity = today;
   return this.save();
 };
 

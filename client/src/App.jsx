@@ -63,6 +63,7 @@ const CompetitionPage = React.lazy(() => import('./pages/CompetitionPage'));
 const Leaderboard = React.lazy(() => import('./pages/Leaderboard'));
 const LeaderboardPage = React.lazy(() => import('./pages/LeaderboardPage'));
 const LessonsPage = React.lazy(() => import('./pages/LessonsPage'));
+const LearnHubPage = React.lazy(() => import('./pages/LearnHubPage'));
 const BuddiesPage = React.lazy(() => import('./pages/BuddiesPage'));
 const StudentDashboardPage = React.lazy(() => import('./pages/StudentDashboardPage'));
 const EcoStorePage = React.lazy(() => import('./pages/EcoStorePage'));
@@ -211,6 +212,7 @@ function App() {
                 <Route path="/accessibility" element={<AccessibilityStatement />} />
                 <Route path="/consent/parent/:token" element={<ParentConsentPage />} />
                 <Route path="/topics" element={<TopicsPage />} />
+                <Route path="/learn-hub" element={<ProtectedRoute><LearnHubPage /></ProtectedRoute>} />
                 <Route path="/topics/:id" element={<TopicDetail />} />
                 <Route path="/games" element={<GamesPage />} />
                 <Route path="/games/:id" element={<GameDetail />} />
@@ -234,7 +236,7 @@ function App() {
                 <Route path="/government-dashboard" element={<ProtectedRoute><GovernmentDashboardPage /></ProtectedRoute>} />
                 <Route path="/habit-tracker" element={<ProtectedRoute><HabitTrackerPage /></ProtectedRoute>} />
                 <Route path="/competition" element={<CompetitionPage />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/leaderboard" element={<Navigate to="/leaderboards" replace />} />
                 <Route path="/challenges" element={<ProtectedRoute><SchoolChallengesPage /></ProtectedRoute>} />
                 <Route path="/challenges/create" element={<ProtectedRoute><CreateChallengePage /></ProtectedRoute>} />
                 <Route path="/challenges/:id" element={<ProtectedRoute><ChallengeDetailPage /></ProtectedRoute>} />

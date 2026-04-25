@@ -396,12 +396,23 @@ subClient.on("message", (channel, message) => {
   if (channel === "socket-events") {
     try {
       const { event, data } = JSON.parse(message);
-      io.emit(event, data); // Instantly beam to all connected clients
+
+      // ── Room-targeted emission ────────────────────────────────────────────
+      // Publishers include a `room` key in the data payload.
+      // Convention: `school-${schoolId}`, `class-${schoolId}-${grade}`,
+      //             `student-${userId}`, or '*' for global opt-in.
+      const { room, ...payload } = data || {};
+      if (room && room !== '*') {
+        io.to(room).emit(event, payload);
+      } else {
+        io.emit(event, payload); // explicit global or no room specified
+      }
     } catch (e) {
       logger.error("Socket emit parsing error:", e);
     }
   }
 });
+
 
 // Phase 5: Graceful Shutdown Handling
 // Prevents Docker or Kubernetes from killing the server and corrupting operations mid-flight

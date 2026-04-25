@@ -3,6 +3,7 @@ const Progress = require('../models/Progress');
 const Achievement = require('../models/Achievement');
 const asyncHandler = require('../middleware/async');
 const ErrorResponse = require('../utils/errorResponse');
+const { getGlobalLeaderboard } = require('../services/leaderboardService');
 
 // @desc    Get all users
 // @route   GET /api/v1/users
@@ -226,50 +227,20 @@ exports.getLeaderboard = asyncHandler(async (req, res, next) => {
   const {
     timeframe = 'all', // all, month, week
     category = 'points', // points, quizzes, experiments, games
-    grade,
     limit = 50
   } = req.query;
 
-  let query = { role: 'student' };
+  const fullLeaderboard = await getGlobalLeaderboard({
+    limit: 500,
+    anonymize: false,
+  });
 
-  // Filter by grade if specified
-  if (grade) {
-    query.grade = parseInt(grade);
-  }
-
-  let sortField = 'totalPoints';
-
-  // Determine sort field based on category
-  switch (category) {
-    case 'quizzes':
-      sortField = 'stats.quizzesCompleted';
-      break;
-    case 'experiments':
-      sortField = 'stats.experimentsCompleted';
-      break;
-    case 'games':
-      sortField = 'stats.gamesPlayed';
-      break;
-    default:
-      sortField = 'totalPoints';
-  }
-
-  const allUsers = await User.find(query)
-    .select('name school city state totalPoints level stats createdAt _id')
-    .sort({ [sortField]: -1, createdAt: 1 });
-
-  // Add rank to each user
-  const fullLeaderboard = allUsers.map((user, index) => ({
-    ...user.toObject(),
-    rank: index + 1
-  }));
-
-  let data = fullLeaderboard.slice(0, parseInt(limit));
+  let data = fullLeaderboard.slice(0, parseInt(limit, 10));
   let neighbors = [];
 
   // If user ID is provided, find their exact neighbors
   if (req.user && req.user.id) {
-    const userIndex = fullLeaderboard.findIndex(u => u._id.toString() === req.user.id.toString());
+    const userIndex = fullLeaderboard.findIndex((u) => String(u._id) === String(req.user.id));
     if (userIndex !== -1) {
       // Get 2 neighbors above and 2 below
       const startIdx = Math.max(0, userIndex - 2);
@@ -285,8 +256,7 @@ exports.getLeaderboard = asyncHandler(async (req, res, next) => {
     neighbors: neighbors,
     filters: {
       timeframe,
-      category,
-      grade
+      category
     }
   });
 });

@@ -3,7 +3,8 @@ import { FixedSizeList } from "react-window";
 import { useLeaderboard } from "../../hooks/useLeaderboard";
 
 export default function LeaderboardList() {
-    const { data = [] } = useLeaderboard();
+    const { data: leaderboardRes } = useLeaderboard();
+    const data = leaderboardRes?.leaderboard || [];
 
     return (
         <FixedSizeList

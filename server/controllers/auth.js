@@ -326,9 +326,9 @@ exports.login = async (req, res, next) => {
     // Clear lockout on successful login
     await clearFailedAttempts(email);
 
-    // Update last login and streak
+    // Update last login only; streak updates are reserved for verified actions.
     user.lastLogin = new Date();
-    await user.updateStreak();
+    await user.save();
 
     // Log successful login
     await logAuthEvent(

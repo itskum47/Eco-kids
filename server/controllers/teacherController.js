@@ -8,6 +8,10 @@ const { awardEcoPoints } = require('../utils/ecoPointsManager');
 const rewardValues = require('../constants/rewardValues');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const logger = require('../utils/logger');
+const ApprovalAuditLog = require('../models/ApprovalAuditLog');
+const AuditLog = require('../models/AuditLog');
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -161,13 +165,72 @@ exports.getPendingSubmissions = asyncHandler(async (req, res) => {
     ActivitySubmission.countDocuments({ ...matchSchool, status: { $in: ['pending_review', 'pending_ai', 'pending', 'ai_processing'] } })
   ]);
 
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const reviewerStats = await ApprovalAuditLog.aggregate([
+    {
+      $match: {
+        teacher_id: new mongoose.Types.ObjectId(req.user.id),
+        action_source: 'teacher',
+        timestamp: { $gte: sevenDaysAgo }
+      }
+    },
+    {
+      $group: {
+        _id: '$teacher_id',
+        totalActions: { $sum: 1 },
+        approvals: { $sum: { $cond: [{ $eq: ['$action', 'approved'] }, 1, 0] } },
+        rejections: { $sum: { $cond: [{ $eq: ['$action', 'rejected'] }, 1, 0] } }
+      }
+    }
+  ]);
+
+  const baseStats = reviewerStats[0] || { totalActions: 0, approvals: 0, rejections: 0 };
+  const approvalRatio = baseStats.totalActions > 0 ? baseStats.approvals / baseStats.totalActions : 0;
+  const anomalyScore = Math.min(100, Math.round((approvalRatio * 70) + (Math.min(baseStats.totalActions, 100) * 0.3)));
+
+  const enrichedSubmissions = submissions.map((submission) => {
+    const hasFlags = Array.isArray(submission.flags) && submission.flags.length > 0;
+    const aiConfidence = Number(submission?.aiValidation?.confidenceScore);
+    const lowConfidence = Number.isFinite(aiConfidence) && aiConfidence < 50;
+
+    return {
+      ...submission.toObject(),
+      requiresDualReview: hasFlags || lowConfidence,
+      dualReviewReason: hasFlags
+        ? 'fraud_flags_present'
+        : lowConfidence
+          ? 'low_ai_confidence'
+          : null,
+    };
+  });
+
+  const dualReviewSample = enrichedSubmissions
+    .filter((submission) => submission.requiresDualReview)
+    .slice(0, 5)
+    .map((submission) => ({
+      _id: submission._id,
+      activityType: submission.activityType,
+      studentName: submission.user?.name || 'Student',
+      dualReviewReason: submission.dualReviewReason,
+      createdAt: submission.createdAt,
+    }));
+
   res.status(200).json({
     success: true,
-    count: submissions.length,
+    count: enrichedSubmissions.length,
     total,
     page: parseInt(page),
     pages: Math.ceil(total / parseInt(limit)),
-    data: submissions
+    reviewerAnomaly: {
+      totalActions: baseStats.totalActions,
+      approvals: baseStats.approvals,
+      rejections: baseStats.rejections,
+      approvalRatio: Math.round(approvalRatio * 100),
+      anomalyScore,
+      windowDays: 7
+    },
+    dualReviewSample,
+    data: enrichedSubmissions
   });
 });
 
@@ -196,7 +259,8 @@ exports.updateSubmissionStatus = asyncHandler(async (req, res) => {
   if (!submission) {
     return res.status(404).json({ success: false, message: 'Submission not found' });
   }
-  const alreadyAiApproved = submission.status === 'ai_approved';
+  const alreadyApprovedStatuses = ['ai_approved', 'teacher_approved', 'approved'];
+  const alreadyApproved = alreadyApprovedStatuses.includes(submission.status);
 
   // School boundary check
   if (teacherSchool && submission.school && submission.school !== teacherSchool) {
@@ -219,6 +283,14 @@ exports.updateSubmissionStatus = asyncHandler(async (req, res) => {
       reviewedAt: new Date()
     };
     await submission.save();
+    ApprovalAuditLog.create({
+      teacher_id: req.user.id,
+      submission_id: submission._id,
+      action: 'rejected',
+      action_source: 'teacher',
+      ip_address: req.ip,
+      session_id: req.headers['x-session-id'] || null
+    }).catch(() => {});
     return res.status(200).json({ success: true, message: 'Submission rejected and removed', data: submission });
   }
 
@@ -234,18 +306,43 @@ exports.updateSubmissionStatus = asyncHandler(async (req, res) => {
     reviewedAt: new Date()
   };
   await submission.save();
+  ApprovalAuditLog.create({
+    teacher_id: req.user.id,
+    submission_id: submission._id,
+    action: 'approved',
+    action_source: 'teacher',
+    ip_address: req.ip,
+    session_id: req.headers['x-session-id'] || null
+  }).catch(() => {});
 
   // Award eco points (non-blocking) only if not already awarded by AI
-  if (!alreadyAiApproved) {
+  if (!alreadyApproved) {
     const pointsToAward = submission.activityPoints || rewardValues.ACTIVITY_APPROVED;
     awardEcoPoints(
       submission.user._id,
       pointsToAward,
       'activity-approved',
-      { sourceType: 'activity', submissionId: submission._id, activityType: submission.activityType }
+      {
+        sourceType: 'activity',
+        sourceModel: 'ActivitySubmission',
+        sourceId: submission._id,
+        submissionId: submission._id,
+        activityType: submission.activityType,
+        verification: {
+          status: 'teacher_approved',
+          reviewerId: req.user.id,
+          verifiedAt: new Date().toISOString()
+        },
+        idempotencyKey: `teacher:approved:${submission._id.toString()}`
+      }
     ).catch(() => {});
     if (submission.school || submission.schoolId) {
       await School.findByIdAndUpdate(submission.school || submission.schoolId, { $inc: { totalEcoPoints: pointsToAward } }).catch(() => {});
+    }
+
+    const streakUser = await User.findById(submission.user._id);
+    if (streakUser) {
+      await streakUser.updateStreak();
     }
   }
 
@@ -288,6 +385,14 @@ exports.batchApproveActivities = asyncHandler(async (req, res) => {
       reviewedAt: new Date()
     };
     await submission.save();
+    ApprovalAuditLog.create({
+      teacher_id: req.user.id,
+      submission_id: submission._id,
+      action: 'approved',
+      action_source: 'teacher',
+      ip_address: req.ip,
+      session_id: req.headers['x-session-id'] || null
+    }).catch(() => {});
 
     if (submission.user?._id) {
       const pointsToAward = submission.activityPoints || rewardValues.ACTIVITY_APPROVED;
@@ -295,10 +400,27 @@ exports.batchApproveActivities = asyncHandler(async (req, res) => {
         submission.user._id,
         pointsToAward,
         'activity-approved',
-        { sourceType: 'activity', submissionId: submission._id, activityType: submission.activityType }
+        {
+          sourceType: 'activity',
+          sourceModel: 'ActivitySubmission',
+          sourceId: submission._id,
+          submissionId: submission._id,
+          activityType: submission.activityType,
+          verification: {
+            status: 'teacher_approved',
+            reviewerId: req.user.id,
+            verifiedAt: new Date().toISOString()
+          },
+          idempotencyKey: `teacher:batch-approved:${submission._id.toString()}`
+        }
       ).catch(() => {});
       if (submission.school || submission.schoolId) {
         await School.findByIdAndUpdate(submission.school || submission.schoolId, { $inc: { totalEcoPoints: pointsToAward } }).catch(() => {});
+      }
+
+      const streakUser = await User.findById(submission.user._id);
+      if (streakUser) {
+        await streakUser.updateStreak();
       }
     }
 
@@ -309,6 +431,137 @@ exports.batchApproveActivities = asyncHandler(async (req, res) => {
     success: true,
     message: `${approvedCount} submission(s) approved`,
     modifiedCount: approvedCount
+  });
+});
+
+/**
+ * POST /api/v1/teacher/realtime/manual-trigger
+ * Manual fallback trigger for demo/recovery: emits approval and leaderboard events.
+ */
+exports.manualRealtimeTrigger = asyncHandler(async (req, res) => {
+  const {
+    type,
+    userId,
+    userName,
+    points = rewardValues.ACTIVITY_APPROVED,
+    leaderboardType = 'global',
+    newRank,
+    previousRank
+  } = req.body || {};
+
+  if (!global.io) {
+    return res.status(503).json({ success: false, message: 'Realtime service unavailable' });
+  }
+
+  if (!['approval', 'rank-update'].includes(type)) {
+    return res.status(400).json({ success: false, message: 'type must be "approval" or "rank-update"' });
+  }
+
+  if (!userId) {
+    return res.status(400).json({ success: false, message: 'userId is required' });
+  }
+
+  const now = new Date();
+
+  if (type === 'approval') {
+    const payload = {
+      userId,
+      points: Number(points) || rewardValues.ACTIVITY_APPROVED,
+      totalPoints: null,
+      activity: 'manual-approval-trigger',
+      notificationId: `manual-approval:${userId}:${now.getTime()}`,
+      timestamp: now
+    };
+
+    global.io.to(`user-${userId}`).emit('points-earned', payload);
+    global.io.emit('points-earned', payload);
+
+    logger.info(`[Teacher] Manual approval trigger emitted by ${req.user.id} for user ${userId}`);
+
+    return res.status(200).json({ success: true, message: 'Manual approval trigger emitted', data: payload });
+  }
+
+  const leaderboardPayload = {
+    userId,
+    userName: userName || 'Student',
+    newRank: Number.isFinite(Number(newRank)) ? Number(newRank) : null,
+    previousRank: Number.isFinite(Number(previousRank)) ? Number(previousRank) : null,
+    ecoPoints: Number(points) || 0,
+    timestamp: now
+  };
+
+  global.io.to(`leaderboard-${leaderboardType}`).emit('leaderboard-update', leaderboardPayload);
+  global.io.emit('leaderboard-update', { ...leaderboardPayload, leaderboardType });
+
+  logger.info(`[Teacher] Manual rank trigger emitted by ${req.user.id} for user ${userId} (${leaderboardType})`);
+
+  const eventTimestamp = now.toISOString();
+  const signatureSecret = process.env.RANK_EVENT_SIGNING_SECRET || process.env.JWT_SECRET || 'ecokids-rank-events';
+  const signaturePayload = JSON.stringify({
+    userId: String(userId),
+    leaderboardType,
+    previousRank: leaderboardPayload.previousRank,
+    newRank: leaderboardPayload.newRank,
+    ecoPoints: leaderboardPayload.ecoPoints,
+    timestamp: eventTimestamp
+  });
+  const eventSignature = crypto
+    .createHmac('sha256', signatureSecret)
+    .update(signaturePayload)
+    .digest('hex');
+
+  await AuditLog.create({
+    actor: req.user._id,
+    actorId: String(req.user.id),
+    actorRole: req.user.role,
+    action: 'RANK_TRANSITION_EMITTED',
+    targetType: 'User',
+    targetId: String(userId),
+    metadata: {
+      leaderboardType,
+      previousRank: leaderboardPayload.previousRank,
+      newRank: leaderboardPayload.newRank,
+      ecoPoints: leaderboardPayload.ecoPoints,
+      source: 'manual-realtime-trigger',
+      signatureVersion: 'hmac-sha256:v1',
+      signaturePayload,
+      eventTimestamp,
+      eventSignature
+    },
+    status: 'success',
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent']
+  }).catch(() => {});
+
+  return res.status(200).json({
+    success: true,
+    message: 'Manual rank update trigger emitted',
+    data: { ...leaderboardPayload, leaderboardType }
+  });
+});
+
+/**
+ * GET /api/v1/teacher/realtime/rank-history/:userId
+ * Returns replayable rank transition history for a student.
+ */
+exports.getRankTransitionHistory = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+  const { limit = 50 } = req.query;
+
+  const history = await AuditLog.find({
+    action: 'RANK_TRANSITION_EMITTED',
+    targetType: 'User',
+    targetId: String(userId)
+  })
+    .sort({ createdAt: -1 })
+    .limit(Math.min(Number(limit) || 50, 200))
+    .select('action targetId metadata createdAt actorId actorRole status')
+    .lean();
+
+  res.status(200).json({
+    success: true,
+    count: history.length,
+    data: history
   });
 });
 

@@ -24,6 +24,7 @@ const {
 const { getCompetenciesForActivity } = require('../config/nepMapping');
 const { getSdgsForActivity } = require('../config/sdgMapping');
 const { ACTIVITY_POINTS_MAP } = require('../config/activityTypes');
+const { getGeoPolicy } = require('../config/geoPolicy');
 const { sendSms } = require('../services/smsService');
 const { aiVerificationQueue } = require('../queues/aiVerificationQueue');
 const { uploadImage } = require('../services/storageService');
@@ -108,34 +109,41 @@ exports.submitActivity = asyncHandler(async (req, res) => {
     });
   }
 
-  // === FRAUD CHECK 2: Geo-location enforcement ===
-  const geoResult = validateGeoLocation(latitude, longitude, geoAccuracy);
-  if (!geoResult.valid) {
-    return res.status(400).json({
-      success: false,
-      message: geoResult.message,
-      fraudCheck: 'geo_location'
-    });
+  // === FRAUD CHECK 2: Geo-location enforcement (per-activity policy) ===
+  const geoPolicy = getGeoPolicy(activityType);
+
+  // Only hard-require GPS coords if the policy demands it
+  if (geoPolicy.requiresGeo) {
+    const geoResult = validateGeoLocation(latitude, longitude, geoAccuracy);
+    if (!geoResult.valid) {
+      return res.status(400).json({
+        success: false,
+        message: geoResult.message,
+        fraudCheck: 'geo_location'
+      });
+    }
   }
 
   const flags = [];
   const schoolObjectId = req.user.profile?.schoolId;
-  if (schoolObjectId) {
+  if (schoolObjectId && latitude !== undefined && longitude !== undefined && geoPolicy.maxDistanceMeters !== null) {
     const schoolDoc = await School.findById(schoolObjectId).select('coordinates');
-    if (schoolDoc?.coordinates?.lat && schoolDoc?.coordinates?.lng && latitude !== undefined && longitude !== undefined) {
+    if (schoolDoc?.coordinates?.lat && schoolDoc?.coordinates?.lng) {
       const toRad = (v) => (v * Math.PI) / 180;
-      const R = 6371000; // metres
+      const R = 6371000;
       const dLat = toRad(parseFloat(latitude) - schoolDoc.coordinates.lat);
       const dLon = toRad(parseFloat(longitude) - schoolDoc.coordinates.lng);
       const lat1 = toRad(schoolDoc.coordinates.lat);
       const lat2 = toRad(parseFloat(latitude));
       const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
       const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      if (distance > 5000) {
+      if (distance > geoPolicy.maxDistanceMeters) {
+        // Flag but don't block — AI will factor this in as a confidence reducer
         flags.push('outside_school_proximity');
       }
     }
   }
+
 
   // === FRAUD CHECK 3: Submission cooldown ===
   const cooldownResult = await checkSubmissionCooldown(req.user.id, activityType);
@@ -304,7 +312,9 @@ exports.submitActivity = asyncHandler(async (req, res) => {
 exports.getMySubmissions = asyncHandler(async (req, res) => {
   const submissions = await ActivitySubmission.find({ user: req.user.id })
     .sort({ createdAt: -1 })
-    .populate('reviewedBy', 'name');
+    .populate('reviewedBy', 'name role')
+    .populate('verifiedBy', 'name role')
+    .populate('appealResolvedBy', 'name role');
 
   res.status(200).json({
     success: true,
@@ -531,8 +541,18 @@ exports.verifyActivity = asyncHandler(async (req, res) => {
         sourceType: 'activity',
         sourceModel: 'ActivitySubmission',
         submissionId: submission._id,
-        activityType: submission.activityType
+        activityType: submission.activityType,
+        verification: {
+          status: 'teacher_approved',
+          reviewerId: req.user.id,
+          verifiedAt: new Date().toISOString()
+        }
       });
+
+      const streakUser = await User.findById(submission.user._id);
+      if (streakUser) {
+        await streakUser.updateStreak();
+      }
 
       const gamificationService = require('../services/gamificationService');
       const newBadges = await gamificationService.evaluateBadgesForUser(submission.user._id);
@@ -694,8 +714,18 @@ exports.resolveAppeal = asyncHandler(async (req, res) => {
       sourceModel: 'ActivitySubmission',
       submissionId: submission._id,
       activityType: submission.activityType,
+      verification: {
+        status: 'appeal_approved',
+        reviewerId: req.user.id,
+        verifiedAt: new Date().toISOString()
+      },
       idempotencyKey: `appeal:approved:${submission._id.toString()}`
     });
+
+    const streakUser = await User.findById(submission.user._id);
+    if (streakUser) {
+      await streakUser.updateStreak();
+    }
   } else {
     submission.status = 'appeal_rejected';
     submission.appealDecision = 'rejected';

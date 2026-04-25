@@ -10,6 +10,7 @@ const Notification = require('../models/Notification');
 const mongoose = require('mongoose');
 const asyncHandler = require('../middleware/async');
 const { calculateEquivalents } = require('../utils/impactCalculator');
+const { cacheService } = require('../services/cacheService');
 
 const QUICK_ACTION_LIBRARY = {
   'shower-5min': {
@@ -35,6 +36,24 @@ const QUICK_ACTION_LIBRARY = {
 };
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
+const IMPACT_PUBLIC_CACHE_NAMESPACE = 'impact_public';
+const IMPACT_PUBLIC_CACHE_TTL = 60;
+
+const getImpactCache = async (key) => {
+  try {
+    return await cacheService.get(key, IMPACT_PUBLIC_CACHE_NAMESPACE);
+  } catch (_) {
+    return null;
+  }
+};
+
+const setImpactCache = async (key, value, ttl = IMPACT_PUBLIC_CACHE_TTL) => {
+  try {
+    await cacheService.set(key, value, ttl, IMPACT_PUBLIC_CACHE_NAMESPACE);
+  } catch (_) {
+    // Fail-open: cache errors should not affect API responses
+  }
+};
 
 function parsePeriod(period = 'month') {
   const now = new Date();
@@ -113,6 +132,12 @@ function calculateMonthlyDelta(baseline = {}, current = {}) {
 }
 
 exports.getImpactStats = asyncHandler(async (req, res) => {
+  const cacheKey = 'stats:v1';
+  const cached = await getImpactCache(cacheKey);
+  if (cached) {
+    return res.status(200).json(cached);
+  }
+
   try {
     const [submissionAgg, userAgg] = await Promise.all([
       ActivitySubmission.aggregate([
@@ -153,7 +178,7 @@ exports.getImpactStats = asyncHandler(async (req, res) => {
     const submissionData = submissionAgg[0] || {};
     const userData = userAgg[0] || {};
 
-    res.status(200).json({
+    const response = {
       success: true,
       data: {
         treesPlanted: submissionData.treesPlanted || 0,
@@ -162,7 +187,10 @@ exports.getImpactStats = asyncHandler(async (req, res) => {
         schoolsJoined: (userData.schools || []).filter(Boolean).length,
         studentsActive: userData.studentsActive || 0
       }
-    });
+    };
+
+    await setImpactCache(cacheKey, response);
+    res.status(200).json(response);
   } catch (error) {
     // If MongoDB is unavailable, return default stats
     console.warn('Failed to fetch impact stats from MongoDB:', error.message);
@@ -212,6 +240,12 @@ exports.getMyImpact = asyncHandler(async (req, res) => {
  * @access  Public
  */
 exports.getGlobalImpact = asyncHandler(async (req, res) => {
+  const cacheKey = 'global:v1';
+  const cached = await getImpactCache(cacheKey);
+  if (cached) {
+    return res.status(200).json(cached);
+  }
+
   const stats = await User.aggregate([
     {
       $match: { role: 'student' }
@@ -250,7 +284,7 @@ exports.getGlobalImpact = asyncHandler(async (req, res) => {
     activitiesCompleted: globalImpact.totalActivities
   });
 
-  res.status(200).json({
+  const response = {
     success: true,
     data: {
       globalImpact: {
@@ -264,7 +298,10 @@ exports.getGlobalImpact = asyncHandler(async (req, res) => {
       },
       equivalents
     }
-  });
+  };
+
+  await setImpactCache(cacheKey, response);
+  res.status(200).json(response);
 });
 
 /**
@@ -274,6 +311,11 @@ exports.getGlobalImpact = asyncHandler(async (req, res) => {
  */
 exports.getSchoolImpact = asyncHandler(async (req, res) => {
   const { schoolName } = req.params;
+  const cacheKey = `school:${encodeURIComponent(String(schoolName || '').toLowerCase())}:v1`;
+  const cached = await getImpactCache(cacheKey);
+  if (cached) {
+    return res.status(200).json(cached);
+  }
 
   const stats = await User.aggregate([
     {
@@ -316,7 +358,7 @@ exports.getSchoolImpact = asyncHandler(async (req, res) => {
     activitiesCompleted: schoolImpact.totalActivities
   });
 
-  res.status(200).json({
+  const response = {
     success: true,
     school: schoolName,
     data: {
@@ -336,7 +378,10 @@ exports.getSchoolImpact = asyncHandler(async (req, res) => {
       },
       equivalents
     }
-  });
+  };
+
+  await setImpactCache(cacheKey, response);
+  res.status(200).json(response);
 });
 
 /**
@@ -363,6 +408,12 @@ exports.getImpactLeaderboard = asyncHandler(async (req, res) => {
     });
   }
 
+  const cacheKey = `leaderboard:${metric}:${Number(limit) || 50}:${Number(offset) || 0}:v1`;
+  const cached = await getImpactCache(cacheKey);
+  if (cached) {
+    return res.status(200).json(cached);
+  }
+
   const sortObj = {};
   sortObj[`environmentalImpact.${metric}`] = -1;
 
@@ -386,14 +437,17 @@ exports.getImpactLeaderboard = asyncHandler(async (req, res) => {
     activitiesCompleted: user.environmentalImpact?.activitiesCompleted || 0
   }));
 
-  res.status(200).json({
+  const response = {
     success: true,
     metric,
     count: leaderboard.length,
     total,
     pages: Math.ceil(total / limit),
     data: leaderboard
-  });
+  };
+
+  await setImpactCache(cacheKey, response);
+  res.status(200).json(response);
 });
 
 /**
@@ -404,6 +458,11 @@ exports.getImpactLeaderboard = asyncHandler(async (req, res) => {
 exports.getDistrictImpact = asyncHandler(async (req, res) => {
   const { districtName } = req.params;
   const { limit = 20 } = req.query;
+  const cacheKey = `district:${encodeURIComponent(String(districtName || '').toLowerCase())}:${Number(limit) || 20}:v1`;
+  const cached = await getImpactCache(cacheKey);
+  if (cached) {
+    return res.status(200).json(cached);
+  }
 
   const schoolStats = await User.aggregate([
     {
@@ -468,7 +527,7 @@ exports.getDistrictImpact = asyncHandler(async (req, res) => {
     averageCO2PerStudent: Math.round((school.co2Prevented / school.studentCount) * 100) / 100
   }));
 
-  res.status(200).json({
+  const response = {
     success: true,
     district: districtName,
     globalStats: {
@@ -478,7 +537,10 @@ exports.getDistrictImpact = asyncHandler(async (req, res) => {
       averageCO2PerStudent: Math.round((globalStats.totalCO2 / Math.max(globalStats.totalStudents, 1)) * 100) / 100
     },
     schoolRankings: schoolsData
-  });
+  };
+
+  await setImpactCache(cacheKey, response);
+  res.status(200).json(response);
 });
 
 /**
@@ -602,6 +664,8 @@ exports.logDailyImpactAction = asyncHandler(async (req, res) => {
       data: { metric: 'co2', percentChange: delta.percentChange }
     }).catch(() => {});
   }
+
+  await cacheService.invalidateNamespace(IMPACT_PUBLIC_CACHE_NAMESPACE).catch(() => {});
 
   res.status(201).json({
     success: true,

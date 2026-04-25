@@ -6,6 +6,8 @@ import confetti from 'canvas-confetti';
 import Navbar from '../../components/layout/Navbar';
 import SeasonalEventBanner from '../../components/SeasonalEventBanner';
 import api from '../../utils/api';
+import socket from '../../services/socket';
+import SubmissionCelebration from '../../components/SubmissionCelebration';
 
 // Components
 import AnimatedCounter from '../../components/dashboard/AnimatedCounter';
@@ -22,9 +24,46 @@ const StudentDashboard = () => {
   const { user } = useSelector((state) => state.auth);
   const [gamification, setGamification] = useState(null);
   const [assignments, setAssignments] = useState([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true);
+  const [assignmentsError, setAssignmentsError] = useState(null);
+  const [schoolComparison, setSchoolComparison] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [reward, setReward] = useState(null); // triggered by socket points-earned
 
+  // 🎉 Listen for AI-approval socket event while student is on dashboard
+  useEffect(() => {
+    const handlePointsEarned = (data) => {
+      const pts = data.points || data.pointsAwarded || 50;
+      const label = data.activityType?.replace(/-/g, ' ') || 'Eco Activity';
+      // verified=true because socket only fires AFTER AI worker confirms
+      setReward({ points: pts, activityLabel: label, verified: true });
+      // Refresh gamification bar silently
+      api.get('/v1/gamification/me')
+        .then(res => setGamification(res.data.data))
+        .catch(() => {});
+    };
+    socket.on('points-earned', handlePointsEarned);
+    return () => socket.off('points-earned', handlePointsEarned);
+  }, []);
+
+  const ecoPoints = gamification?.ecoPoints ?? user?.gamification?.ecoPoints ?? 0;
+  const level = gamification?.level ?? user?.gamification?.level ?? 1;
+  const badges = gamification?.badges ?? user?.gamification?.badges ?? [];
+  const streak =
+    gamification?.streak?.current ??
+    gamification?.streak ??
+    user?.gamification?.streak?.current ??
+    user?.gamification?.streak ??
+    0;
+
+  // Calculate next level XP using a simple linear progression when server value is unavailable.
+  const nextLevelPoints = gamification?.nextLevelPoints ?? (level * 100);
+
+  const treesPlanted = user?.environmentalImpact?.treesPlanted ?? 0;
+  const waterSaved = Math.round(user?.environmentalImpact?.waterSaved ?? 0);
+  const co2Prevented = Math.round(user?.environmentalImpact?.co2Prevented ?? 0);
+  const activeMission = assignments.find((assignment) => assignment.status !== 'Submitted') || null;
   const lightPageVars = {
     '--bg': '#f8fafc',
     '--s1': '#ffffff',
@@ -53,10 +92,14 @@ const StudentDashboard = () => {
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
+        setAssignmentsError(null);
         const res = await api.get('/v1/student/assignments');
         setAssignments(res?.data?.data || []);
       } catch (err) {
         console.error('Failed to fetch assignments', err);
+        setAssignmentsError('Unable to load missions right now.');
+      } finally {
+        setAssignmentsLoading(false);
       }
     };
 
@@ -68,6 +111,41 @@ const StudentDashboard = () => {
       setShowOnboarding(true);
     }
   }, []);
+
+  useEffect(() => {
+    const fetchComparison = async () => {
+      const schoolId = user?.profile?.schoolId || user?.schoolId;
+      if (!schoolId) return;
+
+      try {
+        const [schoolRes, rankRes] = await Promise.all([
+          api.get(`/v1/leaderboards/school/${schoolId}`),
+          api.get('/v1/leaderboards/my-rank')
+        ]);
+
+        const leaderboard = schoolRes?.data?.leaderboard || [];
+        if (leaderboard.length === 0) return;
+
+        const points = leaderboard
+          .map((entry) => Number(entry.ecoPoints || 0))
+          .sort((a, b) => a - b);
+
+        const median = points[Math.floor(points.length / 2)] || 0;
+        const q3 = points[Math.floor(points.length * 0.75)] || 0;
+
+        setSchoolComparison({
+          schoolMedian: median,
+          topQuartile: q3,
+          schoolRank: rankRes?.data?.schoolRank || null,
+          userPoints: rankRes?.data?.ecoPoints || ecoPoints,
+        });
+      } catch {
+        // Non-blocking comparison card; ignore fetch failures.
+      }
+    };
+
+    fetchComparison();
+  }, [user?.profile?.schoolId, user?.schoolId, ecoPoints]);
 
   if (loading) {
     return (
@@ -90,26 +168,22 @@ const StudentDashboard = () => {
     );
   }
 
-  const ecoPoints = gamification?.ecoPoints ?? user?.gamification?.ecoPoints ?? 0;
-  const level = gamification?.level ?? user?.gamification?.level ?? 1;
-  const badges = gamification?.badges ?? user?.gamification?.badges ?? [];
-  const streak =
-    gamification?.streak?.current ??
-    gamification?.streak ??
-    user?.gamification?.streak?.current ??
-    user?.gamification?.streak ??
-    0;
 
-  // Calculate next level XP (mock formula for now: level * 100)
-  const nextLevelPoints = gamification?.nextLevelPoints ?? (level * 100);
-
-  // Mock metrics
-  const treesPlanted = 12;
-  const waterSaved = 450;
-  const co2Prevented = 85;
 
   return (
     <div className="min-h-screen bg-[var(--bg)] pb-24 md:pb-10" style={lightPageVars}>
+      {/* AI-approval celebration overlay */}
+      <AnimatePresence>
+        {reward && (
+          <SubmissionCelebration
+            points={reward.points}
+            activityLabel={reward.activityLabel}
+            verified={reward.verified ?? false}
+            onDone={() => setReward(null)}
+          />
+        )}
+      </AnimatePresence>
+
       <Navbar />
       <SeasonalEventBanner />
       <Onboarding isOpen={showOnboarding} onComplete={() => setShowOnboarding(false)} />
@@ -169,8 +243,49 @@ const StudentDashboard = () => {
             {/* Streak Section */}
             <StreakFlame streak={streak} />
 
+            {streak > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35 }}
+                className="eco-card p-4 border-l-4 border-amber-400 bg-amber-50"
+              >
+                <p className="text-sm text-amber-900 font-semibold">🔥 Streak Protection</p>
+                <p className="text-sm text-amber-800">You are on a {streak}-day streak. Log one verified action today to avoid losing momentum.</p>
+              </motion.div>
+            )}
+
+            {schoolComparison && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.05 }}
+                className="eco-card p-5"
+              >
+                <h3 className="text-[var(--t1)] font-ui font-bold text-base mb-3">Class Comparison Snapshot</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="rounded-lg border border-[var(--b2)] bg-[var(--s2)] p-3">
+                    <p className="text-xs text-[var(--t2)] uppercase tracking-wider">Your Points</p>
+                    <p className="font-mono text-xl text-[var(--t1)]">{schoolComparison.userPoints}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--b2)] bg-[var(--s2)] p-3">
+                    <p className="text-xs text-[var(--t2)] uppercase tracking-wider">School Median</p>
+                    <p className="font-mono text-xl text-[var(--t1)]">{schoolComparison.schoolMedian}</p>
+                  </div>
+                  <div className="rounded-lg border border-[var(--b2)] bg-[var(--s2)] p-3">
+                    <p className="text-xs text-[var(--t2)] uppercase tracking-wider">Top Quartile</p>
+                    <p className="font-mono text-xl text-[var(--t1)]">{schoolComparison.topQuartile}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-[var(--t2)] mt-3">
+                  {schoolComparison.schoolRank ? `Current school rank: #${schoolComparison.schoolRank}. ` : ''}
+                  Return trigger: one verified action can move your relative position this week.
+                </p>
+              </motion.div>
+            )}
+
             {/* Active Mission Card */}
-            <ActiveMissionCard />
+            <ActiveMissionCard mission={activeMission} loading={assignmentsLoading} error={assignmentsError} />
 
             {/* Weekly Missions Card */}
             <WeeklyMissionsCard />
@@ -189,7 +304,14 @@ const StudentDashboard = () => {
                 <h2 className="text-[var(--t1)] font-ui font-bold text-lg">My Assignments</h2>
               </div>
 
-              {assignments.length === 0 ? (
+              {assignmentsLoading ? (
+                <div className="space-y-2">
+                  <div className="h-16 rounded-lg bg-gray-100 animate-pulse" />
+                  <div className="h-16 rounded-lg bg-gray-100 animate-pulse" />
+                </div>
+              ) : assignmentsError ? (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{assignmentsError}</p>
+              ) : assignments.length === 0 ? (
                 <p className="text-sm text-[var(--t2)]">No assignments yet.</p>
               ) : (
                 <div className="space-y-3">
@@ -248,7 +370,7 @@ const StudentDashboard = () => {
                   <Link to="/dashboard/trees" className="btn-primary w-full shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.4)]">
                     🌱 Trees NEW
                   </Link>
-                  <Link to="/leaderboard" className="btn-ghost w-full">
+                  <Link to="/leaderboards" className="btn-ghost w-full">
                     🏆 View Leaderboard
                   </Link>
                 </div>

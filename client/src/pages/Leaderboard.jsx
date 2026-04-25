@@ -194,23 +194,32 @@ const Leaderboard = () => {
     try {
       setLoading(true);
 
-      const params = new URLSearchParams({ scope, timeframe, limit: 10 });
-      if (scope === 'school' && user?.profile?.school) {
-        params.set('school', user.profile.school);
-      } else if (scope === 'district' && user?.profile?.district) {
-        params.set('district', user.profile.district);
-        if (user?.profile?.state) params.set('state', user.profile.state);
+      // Canonical scope mapping for /api/v1/leaderboards routes.
+      const schoolId = user?.profile?.schoolId || user?.schoolId;
+      const districtId = user?.profile?.districtId || user?.districtId;
+      let leaderboardPath = '/leaderboards/global';
+
+      if ((scope === 'school' || scope === 'class') && schoolId) {
+        leaderboardPath = `/leaderboards/school/${schoolId}`;
+      } else if (scope === 'district' && districtId) {
+        leaderboardPath = `/leaderboards/district/${districtId}`;
       }
 
-      const response = await apiRequest(`/gamification/leaderboards?${params.toString()}`);
-      
-      if (response && response.data) {
-        // API returns: { leaderboard: { rankings: [...] }, userPosition: {...} }
-        const normalizedRankings = (response.data.leaderboard?.rankings || []).map((ranking, index) => normalizeRanking(ranking, index));
+      const response = await apiRequest(leaderboardPath);
+
+      if (response) {
+        const normalizedRankings = (response.leaderboard || []).map((ranking, index) => normalizeRanking(ranking, index));
         setRankings(normalizedRankings);
-        
-        if (isAuthenticated && response.data.userPosition) {
-          setUserRank(response.data.userPosition);
+
+        if (isAuthenticated) {
+          try {
+            const myRankRes = await apiRequest('/leaderboards/my-rank');
+            setUserRank(myRankRes || null);
+          } catch {
+            setUserRank(null);
+          }
+        } else {
+          setUserRank(null);
         }
       }
     } catch (error) {
@@ -391,10 +400,10 @@ const Leaderboard = () => {
                   </div>
 
                   <GradeAdaptive
-                    seedling={<SeedlingRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, ecoPoints: toSafePoints(userRank.userEcoPoints), avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
-                    explorer={<ExplorerRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: toSafePoints(userRank.userEcoPoints), avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
-                    expert={<ExpertRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: toSafePoints(userRank.userEcoPoints), avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
-                    fallback={<ExplorerRow ranking={{ rank: scope === 'school' ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: toSafePoints(userRank.userEcoPoints), avatar: '🧑‍🚀' }} index={userRank.globalRank - 5} />}
+                    seedling={<SeedlingRow ranking={{ rank: (scope === 'school' || scope === 'class') ? userRank.schoolRank : userRank.globalRank, name: user?.name, ecoPoints: toSafePoints(userRank.ecoPoints), avatar: '🧑‍🚀' }} index={Math.max((userRank.globalRank || 1) - 5, 0)} />}
+                    explorer={<ExplorerRow ranking={{ rank: (scope === 'school' || scope === 'class') ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: toSafePoints(userRank.ecoPoints), avatar: '🧑‍🚀' }} index={Math.max((userRank.globalRank || 1) - 5, 0)} />}
+                    expert={<ExpertRow ranking={{ rank: (scope === 'school' || scope === 'class') ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: toSafePoints(userRank.ecoPoints), avatar: '🧑‍🚀' }} index={Math.max((userRank.globalRank || 1) - 5, 0)} />}
+                    fallback={<ExplorerRow ranking={{ rank: (scope === 'school' || scope === 'class') ? userRank.schoolRank : userRank.globalRank, name: user?.name, school: user?.profile?.school, ecoPoints: toSafePoints(userRank.ecoPoints), avatar: '🧑‍🚀' }} index={Math.max((userRank.globalRank || 1) - 5, 0)} />}
                   />
                 </div>
               )}

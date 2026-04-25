@@ -7,6 +7,8 @@ const badgeEngine = require('../utils/badgeEngine');
 const levelEngine = require('../utils/levelEngine');
 const { cacheService } = require('../services/cacheService');
 const logger = require('../utils/logger');
+const { extractScoreComponentsFromUser } = require('../services/scoringAuthorityService');
+const { getUserRank } = require('../services/leaderboardService');
 
 // Get user's gamification profile for dashboard
 exports.getMyGamificationProfile = async (req, res) => {
@@ -18,17 +20,19 @@ exports.getMyGamificationProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    const scoreBreakdown = extractScoreComponentsFromUser(user);
     const nextLevel = await Level.findOne({
-      minPoints: { $gt: user.gamification.ecoPoints }
+      minPoints: { $gt: scoreBreakdown.score }
     }).sort({ minPoints: 1 });
 
     const progressPercent = nextLevel ?
-      (user.gamification.ecoPoints / nextLevel.minPoints) * 100 : 100;
+      (scoreBreakdown.score / nextLevel.minPoints) * 100 : 100;
 
     res.json({
       success: true,
       data: {
-        ecoPoints: user.gamification.ecoPoints,
+        ecoPoints: scoreBreakdown.score,
+        scoreBreakdown,
         level: user.gamification.level,
         badges: user.gamification.badges,
         nextLevelPoints: nextLevel ? nextLevel.minPoints : null,
@@ -55,6 +59,8 @@ exports.getUserGamificationData = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    const scoreBreakdown = extractScoreComponentsFromUser(user);
+
     // Get user's current level info
     const currentLevel = await Level.findOne({ level: user.gamification.level });
     const nextLevel = await Level.findOne({ level: user.gamification.level + 1 });
@@ -65,12 +71,13 @@ exports.getUserGamificationData = async (req, res) => {
       .slice(0, 10);
 
     // Get user's rank
-    const globalRank = await User.countDocuments({ 'gamification.ecoPoints': { $gt: user.gamification.ecoPoints } }) + 1;
+    const rankData = await getUserRank({ userId });
 
     res.json({
       success: true,
       data: {
-        points: user.gamification.ecoPoints,
+        points: scoreBreakdown.score,
+        scoreBreakdown,
         level: user.gamification.level,
         currentLevel,
         nextLevel,
@@ -78,11 +85,11 @@ exports.getUserGamificationData = async (req, res) => {
         badges: user.gamification.badges,
         certificates: user.progress.certificates,
         recentPoints,
-        globalRank,
+        globalRank: rankData?.globalRank || null,
         progress: nextLevel ? {
-          current: user.gamification.ecoPoints - currentLevel.minPoints,
+          current: scoreBreakdown.score - currentLevel.minPoints,
           total: nextLevel.minPoints - currentLevel.minPoints,
-          percentage: ((user.gamification.ecoPoints - currentLevel.minPoints) / (nextLevel.minPoints - currentLevel.minPoints)) * 100
+          percentage: ((scoreBreakdown.score - currentLevel.minPoints) / (nextLevel.minPoints - currentLevel.minPoints)) * 100
         } : null
       }
     });

@@ -2,10 +2,6 @@ const DailyHabit = require('../models/DailyHabit');
 const User = require('../models/User');
 const asyncHandler = require('../middleware/async');
 const { calculateImpact } = require('../utils/impactCalculator');
-const { awardEcoPoints } = require('../utils/ecoPointsManager');
-const rewardValues = require('../constants/rewardValues');
-const { checkAndAwardBadges } = require('../utils/badgeEngine');
-const { checkLevelUp } = require('../utils/levelEngine');
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
@@ -107,10 +103,6 @@ exports.logHabit = asyncHandler(async (req, res) => {
     },
     { new: true }
   );
-
-  await awardEcoPoints(req.user.id, rewardValues.HABIT_LOGGED, 'habit-logged', { sourceType: 'habit' });
-  await checkLevelUp(req.user.id);
-  await checkAndAwardBadges(req.user.id);
 
   res.status(201).json({
     success: true,

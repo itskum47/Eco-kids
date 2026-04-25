@@ -88,18 +88,16 @@ const Navbar = () => {
   // Main navigation items (always visible)
   const mainNavigationItems = [
     { path: '/', label: t('nav.home') || 'Home', icon: <HomeIcon />, exact: true },
-    { path: '/topics', label: t('nav.topics') || 'Topics', icon: <BookIcon /> },
-    { path: '/games', label: t('nav.games') || 'Games', icon: <GamepadIcon /> },
-    { path: '/experiments', label: t('nav.experiments') || 'Experiments', icon: <FlaskIcon /> },
-    { path: '/quizzes', label: t('nav.quizzes') || 'Quizzes', icon: <LightningIcon /> },
-    { path: '/leaderboard', label: t('nav.leaderboard') || 'Leaderboard', icon: <TrophyIcon /> }
+    { path: '/learn-hub', label: t('nav.topics') || 'Learn', icon: <BookIcon /> },
+    { path: '/submit-activity', label: t('nav.submitActivity') || 'Act', icon: <FlaskIcon /> },
+    { path: '/eco-store', label: t('nav.ecoStore') || 'Reward', icon: <StarIcon /> },
+    { path: '/leaderboards', label: t('nav.leaderboard') || 'Leaderboard', icon: <TrophyIcon /> }
   ];
 
   // More dropdown items
   const moreNavigationItems = [
-    { path: '/about', label: t('nav.about') || 'About', icon: <BookIcon /> },
-    { path: '/eco-store', label: t('nav.ecoStore') || 'Eco Store', icon: <StarIcon /> },
-    { path: '/eco-feed', label: t('nav.ecoFeed') || 'Eco-Feed', icon: <FeedIcon /> },
+    { path: '/my-submissions', label: t('nav.mySubmissions') || 'My Submissions', icon: <FeedIcon /> },
+    { path: '/environmental-impact', label: t('nav.impact') || 'Impact', icon: <LightningIcon /> },
     { path: '/challenges', label: t('nav.challenges') || 'Challenges', icon: <ChallengesIcon /> }
   ];
 
